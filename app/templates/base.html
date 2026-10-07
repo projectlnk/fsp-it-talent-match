@@ -2,10 +2,26 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Минимальный проект</title>
+<title>FSP IT Talent Match</title>
 <link rel="stylesheet" href="{{ url_for('static', path='css/main.css') }}">
 <script defer src="{{ url_for('static', path='vendor/htmx.min.js') }}"></script>
 <script defer src="{{ url_for('static', path='js/main.js') }}"></script>
 </head>
-<body><main>{% block content %}{% endblock %}</main></body>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">FSP IT Talent Match</a>
+  <nav class="topnav">
+    {% if user %}
+      <span class="muted">{{ user.email }}</span>
+      <form method="post" action="/auth/logout" class="inline">
+        <button type="submit" class="linklike">Выйти</button>
+      </form>
+    {% else %}
+      <a href="/auth/login">Войти</a>
+      <a href="/auth/register">Регистрация</a>
+    {% endif %}
+  </nav>
+</header>
+<main>{% block content %}{% endblock %}</main>
+</body>
 </html>

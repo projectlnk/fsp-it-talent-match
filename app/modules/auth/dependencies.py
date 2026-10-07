@@ -98,3 +98,18 @@ def require_role(*roles: UserRole):
         return user
 
     return dependency
+
+def get_current_user_optional(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    session: Session = Depends(get_session),
+) -> User | None:
+    """Как get_current_user, но возвращает None вместо 401.
+
+    Нужен для публичных HTML-страниц, где навигация меняется в зависимости
+    от того, залогинен пользователь или нет.
+    """
+    try:
+        return get_current_user(request, credentials, session)
+    except HTTPException:
+        return None
