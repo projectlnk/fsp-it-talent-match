@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Минимальный проект</h1>
+<p>FastAPI · Jinja2 · HTMX</p>
+<p><a href="/docs">Swagger API</a></p>
+<button hx-get="/health" hx-target="#health-result" hx-swap="textContent">Проверить приложение</button>
+<pre id="health-result" aria-live="polite"></pre>
+<p id="js-status">JavaScript загружается…</p>
+{% endblock %}

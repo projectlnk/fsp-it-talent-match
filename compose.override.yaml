@@ -1,0 +1,12 @@
+services:
+  app:
+    environment:
+      RELOAD: "true"
+    volumes:
+      - ./app:/workspace/app
+      - ./migrations:/workspace/migrations
+      - ./alembic.ini:/workspace/alembic.ini:ro
+  mini-fsp-id:
+    command: ["uvicorn", "mock_fsp.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./mock_fsp:/workspace/mock_fsp
