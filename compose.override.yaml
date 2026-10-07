@@ -5,6 +5,7 @@ services:
     volumes:
       - ./app:/workspace/app
       - ./migrations:/workspace/migrations
+      - ./tests:/workspace/tests
       - ./alembic.ini:/workspace/alembic.ini:ro
   mini-fsp-id:
     command: ["uvicorn", "mock_fsp.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
