@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import random
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.orm import Session, selectinload
 
 from app.modules.assessments.instantiate import (
@@ -19,6 +19,7 @@ from app.modules.assessments.models import (
     Category,
     CategoryStatus,
     Grade,
+    GradeChangeCooldown,
     Question,
     Specialization,
     TestAnswer,
@@ -32,8 +33,9 @@ from app.modules.candidates.models import CandidateProfile
 QUESTIONS_PER_ATTEMPT = 10
 PASS_THRESHOLD = 0.70        # >= 70% — грейд подтверждён
 RETRY_LOWER_THRESHOLD = 0.40  # 40–69% — предложить грейд ниже
-
-
+GRADE_CHANGE_COOLDOWN_DAYS = 60
+MAX_FAILED_ATTEMPTS_PER_GRADE = 3
+GRADE_RETRY_BLOCK_DAYS = 30
 class AssessmentError(Exception):
     """Базовая ошибка модуля assessments."""
 
@@ -70,6 +72,9 @@ class AnswerNotFound(AssessmentError):
 
 class AttemptNotFinished(AssessmentError):
     """Попытка ещё не завершена."""
+
+class AttemptBlocked(AssessmentError):
+    """Попытка заблокирована правилами (кулдаун или лимит попыток)."""
 
 
 # --- Вспомогательные -------------------------------------------------------
@@ -117,6 +122,14 @@ def start_attempt(
     profile = _get_profile(session, user_id)
     spec = _get_specialization(session, specialization_code)
     grade = _get_grade(session, grade_code)
+
+    # 0. Проверяем кулдаун и лимиты
+    check_can_start_attempt(
+        session,
+        user_id=user_id,
+        specialization_code=specialization_code,
+        grade_code=grade_code,
+    )
 
     # 1. Проверяем, есть ли активная попытка
     existing = session.scalar(
@@ -335,6 +348,13 @@ def finish_attempt(
         confirmed_at=attempt.finished_at if attempt.passed else None,
     )
 
+    if attempt.passed:
+        _record_grade_change(
+            session,
+            candidate_profile_id=profile.id,
+            when=attempt.finished_at,
+        )
+
     session.commit()
     return get_attempt(session, attempt_id=attempt.id, user_id=user_id)
 
@@ -402,3 +422,131 @@ def current_category(
         )
         .order_by(CandidateCategory.id.desc())
     )
+
+# --- Кулдаун и лимиты попыток ---------------------------------------------
+
+
+def _get_cooldown(session: Session, candidate_profile_id: int) -> GradeChangeCooldown | None:
+    return session.scalar(
+        select(GradeChangeCooldown).where(
+            GradeChangeCooldown.candidate_profile_id == candidate_profile_id
+        )
+    )
+
+
+def _failed_attempts_count(
+    session: Session, *, profile_id: int, spec_id: int, grade_id: int
+) -> int:
+    count = session.scalar(
+        select(func.count())
+        .select_from(TestAttempt)
+        .where(
+            TestAttempt.candidate_profile_id == profile_id,
+            TestAttempt.specialization_id == spec_id,
+            TestAttempt.target_grade_id == grade_id,
+            TestAttempt.status == AttemptStatus.COMPLETED,
+            TestAttempt.passed.is_(False),
+        )
+    )
+    return int(count or 0)
+
+
+def _last_failed_attempt(
+    session: Session, *, profile_id: int, spec_id: int, grade_id: int
+) -> TestAttempt | None:
+    return session.scalar(
+        select(TestAttempt)
+        .where(
+            TestAttempt.candidate_profile_id == profile_id,
+            TestAttempt.specialization_id == spec_id,
+            TestAttempt.target_grade_id == grade_id,
+            TestAttempt.status == AttemptStatus.COMPLETED,
+            TestAttempt.passed.is_(False),
+        )
+        .order_by(TestAttempt.finished_at.desc())
+        .limit(1)
+    )
+
+
+def check_can_start_attempt(
+    session: Session,
+    *,
+    user_id: int,
+    specialization_code: str,
+    grade_code: str,
+) -> None:
+    """Проверяет кулдауны и лимиты.
+
+    Поднимает AttemptBlocked, если попытку начать нельзя.
+    """
+    profile = _get_profile(session, user_id)
+    spec = _get_specialization(session, specialization_code)
+    target_grade = _get_grade(session, grade_code)
+    now = datetime.now(UTC)
+
+    # 1. Общий кулдаун на смену грейда
+    cooldown = _get_cooldown(session, profile.id)
+    if cooldown is not None and now < cooldown.next_allowed_at:
+        current = current_category(session, user_id=user_id)
+        if current is not None and current.status == CategoryStatus.CONFIRMED:
+            current_cat = session.get(Category, current.category_id)
+            if current_cat is not None and current_cat.grade_id != target_grade.id:
+                days_left = (cooldown.next_allowed_at - now).days
+                raise AttemptBlocked(
+                    f"Смена грейда доступна раз в {GRADE_CHANGE_COOLDOWN_DAYS} дней. "
+                    f"Осталось {days_left} дн."
+                )
+
+    # 2. Лимит провалов на этот грейд
+    failed = _failed_attempts_count(
+        session, profile_id=profile.id, spec_id=spec.id, grade_id=target_grade.id
+    )
+    if failed >= MAX_FAILED_ATTEMPTS_PER_GRADE:
+        last = _last_failed_attempt(
+            session, profile_id=profile.id, spec_id=spec.id, grade_id=target_grade.id
+        )
+        if last is not None and last.finished_at is not None:
+            block_until = last.finished_at + timedelta(days=GRADE_RETRY_BLOCK_DAYS)
+            if now < block_until:
+                days_left = (block_until - now).days
+                raise AttemptBlocked(
+                    f"Превышен лимит {MAX_FAILED_ATTEMPTS_PER_GRADE} попыток "
+                    f"на грейд. Повтор доступен через {days_left} дн."
+                )
+
+
+def cooldown_status(session: Session, *, user_id: int) -> dict[str, Any]:
+    """Возвращает состояние кулдауна для UI."""
+    profile = _get_profile(session, user_id)
+    cooldown = _get_cooldown(session, profile.id)
+    now = datetime.now(UTC)
+    if cooldown is None or cooldown.next_allowed_at <= now:
+        return {
+            "active": False,
+            "next_allowed_at": cooldown.next_allowed_at if cooldown else None,
+            "days_left": 0,
+        }
+    return {
+        "active": True,
+        "next_allowed_at": cooldown.next_allowed_at,
+        "days_left": (cooldown.next_allowed_at - now).days,
+    }
+
+
+def _record_grade_change(
+    session: Session, *, candidate_profile_id: int, when: datetime
+) -> None:
+    """Обновляет или создаёт запись кулдауна после успешной смены грейда."""
+    cooldown = _get_cooldown(session, candidate_profile_id)
+    next_allowed = when + timedelta(days=GRADE_CHANGE_COOLDOWN_DAYS)
+    if cooldown is None:
+        session.add(
+            GradeChangeCooldown(
+                candidate_profile_id=candidate_profile_id,
+                last_change_at=when,
+                next_allowed_at=next_allowed,
+            )
+        )
+    else:
+        cooldown.last_change_at = when
+        cooldown.next_allowed_at = next_allowed
