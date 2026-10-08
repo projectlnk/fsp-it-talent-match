@@ -1,0 +1,240 @@
+{
+  "specialization": "frontend",
+  "grade": "senior",
+  "questions": [
+    {
+      "topic": "react_concurrent",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Позволяет React прерывать и переупорядочивать рендер для приоритизации обновлений"},
+      "payload": {
+        "text": "Что даёт Concurrent Mode в React?",
+        "options": [
+          "Позволяет React прерывать и переупорядочивать рендер для приоритизации обновлений",
+          "Ускоряет все компоненты автоматически",
+          "Заменяет useState на useReducer",
+          "Отключает виртуальный DOM"
+        ]
+      }
+    },
+    {
+      "topic": "react_server_components",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Компоненты, выполняющиеся на сервере и не попадающие в клиентский бандл"},
+      "payload": {
+        "text": "Что такое React Server Components?",
+        "options": [
+          "Компоненты, выполняющиеся на сервере и не попадающие в клиентский бандл",
+          "Компоненты, рендерящиеся в Web Worker",
+          "Компоненты без состояния",
+          "Компоненты, работающие только в SSR"
+        ]
+      }
+    },
+    {
+      "topic": "hydration",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Оживление серверного HTML клиентским JavaScript"},
+      "payload": {
+        "text": "Что такое hydration в SSR?",
+        "options": [
+          "Оживление серверного HTML клиентским JavaScript",
+          "Загрузка CSS-файлов",
+          "Синхронизация cookies",
+          "Минификация HTML"
+        ]
+      }
+    },
+    {
+      "topic": "rendering_strategies",
+      "type": "single_choice",
+      "difficulty": 5,
+      "payload": {
+        "text_template": "Когда выбирать стратегию {strategy}?",
+        "variables": {
+          "strategy": [
+            {"value": "SSR", "answer": "Когда важны SEO и актуальность данных при каждом запросе"},
+            {"value": "SSG", "answer": "Когда контент статичен и важно максимальное время загрузки"},
+            {"value": "ISR", "answer": "Когда контент меняется редко, но нуждается в обновлении без пересборки"},
+            {"value": "CSR", "answer": "Когда SEO не критично, а приложение интерактивное после загрузки"}
+          ]
+        },
+        "options": [
+          "Когда важны SEO и актуальность данных при каждом запросе",
+          "Когда контент статичен и важно максимальное время загрузки",
+          "Когда контент меняется редко, но нуждается в обновлении без пересборки",
+          "Когда SEO не критично, а приложение интерактивное после загрузки"
+        ]
+      }
+    },
+    {
+      "topic": "frontend_architecture",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Feature-Sliced Design: разделение по слоям и фичам, а не по типам файлов"},
+      "payload": {
+        "text": "Что такое Feature-Sliced Design?",
+        "options": [
+          "Feature-Sliced Design: разделение по слоям и фичам, а не по типам файлов",
+          "Способ монтирования компонентов",
+          "Методология тестирования",
+          "Формат конфигурации Vite"
+        ]
+      }
+    },
+    {
+      "topic": "microfrontends",
+      "type": "single_choice",
+      "difficulty": 5,
+      "payload": {
+        "text_template": "Какой паттерн микрофронтендов описан: «{description}»?",
+        "variables": {
+          "description": [
+            {"value": "несколько приложений на одной странице, каждое с собственным жизненным циклом", "answer": "Module Federation"},
+            {"value": "общий контейнер, который подгружает независимые модули по требованию", "answer": "Single-SPA"},
+            {"value": "разные команды разворачивают свои части через iframe", "answer": "Iframe composition"}
+          ]
+        },
+        "options": ["Module Federation", "Single-SPA", "Iframe composition", "Web Components"]
+      }
+    },
+    {
+      "topic": "state_machines",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Явное описание состояний и переходов, исключающее недопустимые комбинации"},
+      "payload": {
+        "text": "Что даёт использование конечных автоматов (XState, State Machines) во фронтенде?",
+        "options": [
+          "Явное описание состояний и переходов, исключающее недопустимые комбинации",
+          "Ускорение рендера",
+          "Снижение размера бандла",
+          "Замена React"
+        ]
+      }
+    },
+    {
+      "topic": "design_systems",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Единый набор компонентов, токенов и правил, синхронизирующий дизайн и код"},
+      "payload": {
+        "text": "Что такое design system?",
+        "options": [
+          "Единый набор компонентов, токенов и правил, синхронизирующий дизайн и код",
+          "Файл с макетами в Figma",
+          "CSS-фреймворк",
+          "Способ верстки на Grid"
+        ]
+      }
+    },
+    {
+      "topic": "web_components",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Набор стандартов: Custom Elements, Shadow DOM, HTML Templates"},
+      "payload": {
+        "text": "Из чего состоит спецификация Web Components?",
+        "options": [
+          "Набор стандартов: Custom Elements, Shadow DOM, HTML Templates",
+          "Только Custom Elements",
+          "React и Vue",
+          "WebAssembly и Service Workers"
+        ]
+      }
+    },
+    {
+      "topic": "browser_rendering",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Reflow пересчитывает геометрию, repaint перерисовывает пиксели"},
+      "payload": {
+        "text": "Чем reflow отличается от repaint в браузере?",
+        "options": [
+          "Reflow пересчитывает геометрию, repaint перерисовывает пиксели",
+          "Reflow перерисовывает пиксели, repaint — геометрию",
+          "Это одно и то же",
+          "Reflow работает только в Chrome"
+        ]
+      }
+    },
+    {
+      "topic": "web_workers",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Он не имеет доступа к DOM, общение через postMessage"},
+      "payload": {
+        "text": "Какое ограничение есть у Web Worker?",
+        "options": [
+          "Он не имеет доступа к DOM, общение через postMessage",
+          "Он не может делать сетевые запросы",
+          "Он блокирует главный поток",
+          "Он работает только в Safari"
+        ]
+      }
+    },
+    {
+      "topic": "service_workers",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Прокси-слой между приложением и сетью для офлайн-режима и кэширования"},
+      "payload": {
+        "text": "Что такое Service Worker?",
+        "options": [
+          "Прокси-слой между приложением и сетью для офлайн-режима и кэширования",
+          "Фоновый поток для вычислений",
+          "Менеджер памяти браузера",
+          "Специальный тег в HTML"
+        ]
+      }
+    },
+    {
+      "topic": "css_architecture",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Какая методология CSS описана: «{description}»?",
+        "variables": {
+          "description": [
+            {"value": "разделение на блоки, элементы и модификаторы", "answer": "BEM"},
+            {"value": "атомарные классы, применяемые напрямую в HTML", "answer": "Utility-first (Tailwind)"},
+            {"value": "стили, изолированные в компоненте и не протекающие наружу", "answer": "CSS Modules"}
+          ]
+        },
+        "options": ["BEM", "Utility-first (Tailwind)", "CSS Modules", "Styled Components"]
+      }
+    },
+    {
+      "topic": "typescript_advanced",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Условные типы, определённые через `T extends U ? X : Y`"},
+      "payload": {
+        "text": "Что такое conditional types в TypeScript?",
+        "options": [
+          "Условные типы, определённые через `T extends U ? X : Y`",
+          "Операторы if-else в рантайме",
+          "Обязательные проверки типов",
+          "Аналог enum"
+        ]
+      }
+    },
+    {
+      "topic": "error_monitoring",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Глобальный window.onerror + Error Boundary в React + source maps"},
+      "payload": {
+        "text": "Как организовать мониторинг ошибок во фронтенде?",
+        "options": [
+          "Глобальный window.onerror + Error Boundary в React + source maps",
+          "Только console.log",
+          "Отслеживать ошибки только в dev-режиме",
+          "Периодически перезагружать страницу"
+        ]
+      }
+    }
+  ]
+}

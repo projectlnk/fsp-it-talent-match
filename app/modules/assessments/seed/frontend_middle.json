@@ -1,0 +1,249 @@
+{
+  "specialization": "frontend",
+  "grade": "middle",
+  "questions": [
+    {
+      "topic": "react_hooks",
+      "type": "single_choice",
+      "difficulty": 3,
+      "payload": {
+        "text_template": "Что делает хук {hook} в React?",
+        "variables": {
+          "hook": [
+            {"value": "useMemo", "answer": "Мемоизирует вычисленное значение между рендерами"},
+            {"value": "useCallback", "answer": "Мемоизирует ссылку на функцию"},
+            {"value": "useRef", "answer": "Хранит мутабельное значение без перерендера"},
+            {"value": "useEffect", "answer": "Выполняет побочные эффекты после рендера"}
+          ]
+        },
+        "options": [
+          "Мемоизирует вычисленное значение между рендерами",
+          "Мемоизирует ссылку на функцию",
+          "Хранит мутабельное значение без перерендера",
+          "Выполняет побочные эффекты после рендера"
+        ]
+      }
+    },
+    {
+      "topic": "react_reconciliation",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Diffing виртуального DOM и минимальные мутации реального DOM"},
+      "payload": {
+        "text": "Как React обновляет DOM при изменении состояния?",
+        "options": [
+          "Diffing виртуального DOM и минимальные мутации реального DOM",
+          "Полная перерисовка всего DOM",
+          "Прямые мутации без diffing",
+          "Через WebSocket-события"
+        ]
+      }
+    },
+    {
+      "topic": "react_context",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Передавать данные через дерево без prop drilling"},
+      "payload": {
+        "text": "Зачем нужен React Context?",
+        "options": [
+          "Передавать данные через дерево без prop drilling",
+          "Хранить глобальное состояние с реактивностью",
+          "Заменить Redux полностью",
+          "Кэшировать сетевые запросы"
+        ]
+      }
+    },
+    {
+      "topic": "state_management",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Когда выбирать {tool} для управления состоянием?",
+        "variables": {
+          "tool": [
+            {"value": "локальный useState", "answer": "Когда состояние нужно только одному компоненту или небольшому поддереву"},
+            {"value": "Context", "answer": "Когда данные нужны во многих местах, но меняются редко"},
+            {"value": "Redux / Zustand", "answer": "Когда состояние сложное, общее для многих компонентов и часто меняется"}
+          ]
+        },
+        "options": [
+          "Когда состояние нужно только одному компоненту или небольшому поддереву",
+          "Когда данные нужны во многих местах, но меняются редко",
+          "Когда состояние сложное, общее для многих компонентов и часто меняется",
+          "Всегда, независимо от задачи"
+        ]
+      }
+    },
+    {
+      "topic": "typescript_generics",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "function identity<T>(arg: T): T { return arg; }"},
+      "payload": {
+        "text": "Как правильно объявить generic-функцию, возвращающую тот же тип, что приняла?",
+        "options": [
+          "function identity<T>(arg: T): T { return arg; }",
+          "function identity(arg: any): any { return arg; }",
+          "function identity<T>(arg): T { return arg; }",
+          "function identity(arg: T): T { return arg; }"
+        ]
+      }
+    },
+    {
+      "topic": "typescript_utility",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Что делает утилитарный тип TypeScript `{utility}`?",
+        "variables": {
+          "utility": [
+            {"value": "Partial<T>", "answer": "Делает все поля T опциональными"},
+            {"value": "Pick<T, K>", "answer": "Оставляет только указанные ключи K из T"},
+            {"value": "Omit<T, K>", "answer": "Убирает указанные ключи K из T"},
+            {"value": "Readonly<T>", "answer": "Делает все поля T только для чтения"}
+          ]
+        },
+        "options": [
+          "Делает все поля T опциональными",
+          "Оставляет только указанные ключи K из T",
+          "Убирает указанные ключи K из T",
+          "Делает все поля T только для чтения"
+        ]
+      }
+    },
+    {
+      "topic": "performance",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Ленивая загрузка компонентов и маршрутов, разделение бандла"},
+      "payload": {
+        "text": "Как уменьшить время первой отрисовки SPA?",
+        "options": [
+          "Ленивая загрузка компонентов и маршрутов, разделение бандла",
+          "Добавить больше зависимостей",
+          "Отключить кэширование",
+          "Убрать lazy loading изображений"
+        ]
+      }
+    },
+    {
+      "topic": "web_vitals",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Что измеряет метрика {metric}?",
+        "variables": {
+          "metric": [
+            {"value": "LCP", "answer": "Время до отрисовки самого крупного элемента в зоне видимости"},
+            {"value": "CLS", "answer": "Смещение элементов во время загрузки страницы"},
+            {"value": "INP", "answer": "Задержку реакции интерфейса на действия пользователя"}
+          ]
+        },
+        "options": [
+          "Время до отрисовки самого крупного элемента в зоне видимости",
+          "Смещение элементов во время загрузки страницы",
+          "Задержку реакции интерфейса на действия пользователя",
+          "Размер итогового бандла"
+        ]
+      }
+    },
+    {
+      "topic": "accessibility",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Добавить alt с описанием, либо alt=\"\" для декоративных"},
+      "payload": {
+        "text": "Как правильно добавить изображение с точки зрения доступности?",
+        "options": [
+          "Добавить alt с описанием, либо alt=\"\" для декоративных",
+          "Всегда использовать alt=\"image\"",
+          "Не добавлять alt, если изображение неважно",
+          "Использовать title вместо alt"
+        ]
+      }
+    },
+    {
+      "topic": "security_xss",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Экранировать пользовательский ввод и избегать dangerouslySetInnerHTML"},
+      "payload": {
+        "text": "Как защититься от XSS во фронтенде?",
+        "options": [
+          "Экранировать пользовательский ввод и избегать dangerouslySetInnerHTML",
+          "Использовать только GET-запросы",
+          "Отключить cookies",
+          "Хранить токены в localStorage"
+        ]
+      }
+    },
+    {
+      "topic": "css_grid",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "grid-template-columns: repeat(3, 1fr)"},
+      "payload": {
+        "text": "Как задать Grid с тремя равными колонками?",
+        "options": [
+          "grid-template-columns: repeat(3, 1fr)",
+          "grid-template-columns: 3fr",
+          "grid-columns: 3",
+          "grid: 3 columns"
+        ]
+      }
+    },
+    {
+      "topic": "http_caching",
+      "type": "single_choice",
+      "difficulty": 3,
+      "payload": {
+        "text_template": "Что означает HTTP-заголовок {header}?",
+        "variables": {
+          "header": [
+            {"value": "Cache-Control: no-store", "answer": "Запрещает кэшировать ответ полностью"},
+            {"value": "ETag", "answer": "Идентификатор версии ресурса для условных запросов"},
+            {"value": "Cache-Control: max-age=3600", "answer": "Разрешает кэш на 1 час"}
+          ]
+        },
+        "options": [
+          "Запрещает кэшировать ответ полностью",
+          "Идентификатор версии ресурса для условных запросов",
+          "Разрешает кэш на 1 час",
+          "Указывает язык ответа"
+        ]
+      }
+    },
+    {
+      "topic": "testing_frontend",
+      "type": "single_choice",
+      "difficulty": 3,
+      "payload": {
+        "text_template": "Какой уровень тестирования {purpose}?",
+        "variables": {
+          "purpose": [
+            {"value": "проверяет один компонент в изоляции", "answer": "Unit"},
+            {"value": "проверяет взаимодействие компонента с API", "answer": "Integration"},
+            {"value": "прогоняет сценарий в реальном браузере", "answer": "E2E"}
+          ]
+        },
+        "options": ["Unit", "Integration", "E2E", "Smoke"]
+      }
+    },
+    {
+      "topic": "bundlers",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Tree shaking удаляет неиспользуемый код из финального бандла"},
+      "payload": {
+        "text": "Что такое tree shaking в сборщиках вроде Vite или Webpack?",
+        "options": [
+          "Tree shaking удаляет неиспользуемый код из финального бандла",
+          "Минификация CSS",
+          "Разделение кода на чанки",
+          "Кэширование модулей"
+        ]
+      }
+    }
+  ]
+}
