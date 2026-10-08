@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Регистрация</h1>
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+<form method="post" action="/auth/register" class="form">
+  <label>Email
+    <input type="email" name="email" required maxlength="255" value="{{ email }}">
+  </label>
+  <label>Пароль
+    <input type="password" name="password" required minlength="8" maxlength="128">
+  </label>
+  <label>Роль
+    <select name="role" required>
+      <option value="candidate" {% if role == 'candidate' %}selected{% endif %}>Кандидат</option>
+      <option value="employer" {% if role == 'employer' %}selected{% endif %}>Работодатель</option>
+    </select>
+  </label>
+  <label>ФИО или название компании
+    <input type="text" name="full_name" maxlength="255" value="{{ full_name }}">
+  </label>
+  <button type="submit">Зарегистрироваться</button>
+</form>
+<p>Уже есть аккаунт? <a href="/auth/login">Войти</a></p>
+{% endblock %}

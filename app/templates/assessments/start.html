@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Начать тестирование</h1>
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+<p class="muted">Выберите специализацию и грейд, который хотите подтвердить. Тест содержит 10 вопросов.</p>
+
+<form method="post" action="/assessments/start" class="form">
+  <label>Специализация
+    <select name="specialization" required>
+      {% for s in specializations %}
+        <option value="{{ s.code }}">{{ s.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Грейд
+    <select name="grade" required>
+      {% for g in grades %}
+        <option value="{{ g.code }}">{{ g.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Начать</button>
+</form>
+<p><a href="/assessments">← Назад к списку</a></p>
+{% endblock %}

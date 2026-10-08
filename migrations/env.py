@@ -2,6 +2,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db import models  # noqa: F401
 
 target_metadata = Base.metadata
 

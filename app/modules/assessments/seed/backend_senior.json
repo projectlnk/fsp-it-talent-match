@@ -1,0 +1,230 @@
+{
+  "specialization": "backend",
+  "grade": "senior",
+  "questions": [
+    {
+      "topic": "cap_theorem",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "В распределённой системе нельзя одновременно гарантировать Consistency, Availability и Partition tolerance"},
+      "payload": {
+        "text": "Что утверждает теорема CAP?",
+        "options": [
+          "В распределённой системе нельзя одновременно гарантировать Consistency, Availability и Partition tolerance",
+          "Любая система обязана быть согласованной",
+          "Доступность всегда важнее согласованности",
+          "Согласованность достижима только через одну реплику"
+        ]
+      }
+    },
+    {
+      "topic": "consistent_hashing",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Минимизирует перераспределение ключей при изменении числа узлов"},
+      "payload": {
+        "text": "Какое преимущество даёт consistent hashing в распределённых системах?",
+        "options": [
+          "Минимизирует перераспределение ключей при изменении числа узлов",
+          "Гарантирует согласованность данных",
+          "Ускоряет операции чтения в 2 раза",
+          "Автоматически шардирует таблицы в PostgreSQL"
+        ]
+      }
+    },
+    {
+      "topic": "distributed_transactions",
+      "type": "single_choice",
+      "difficulty": 5,
+      "payload": {
+        "text_template": "Какая основная гарантия у протокола {protocol}?",
+        "variables": {
+          "protocol": [
+            {"value": "2PC (two-phase commit)", "answer": "Атомарный коммит транзакции на нескольких участниках"},
+            {"value": "Saga", "answer": "Согласованность через компенсирующие действия без блокировок"},
+            {"value": "Raft", "answer": "Согласованная репликация лога между узлами"}
+          ]
+        },
+        "options": [
+          "Атомарный коммит транзакции на нескольких участниках",
+          "Согласованность через компенсирующие действия без блокировок",
+          "Согласованная репликация лога между узлами",
+          "Балансировка нагрузки между узлами"
+        ]
+      }
+    },
+    {
+      "topic": "backpressure",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Сигнал производителю замедлиться, если потребитель не успевает"},
+      "payload": {
+        "text": "Что такое backpressure в системах обмена сообщениями?",
+        "options": [
+          "Сигнал производителю замедлиться, если потребитель не успевает",
+          "Ускорение обработки при росте нагрузки",
+          "Дублирование сообщений для надёжности",
+          "Автоматическое увеличение числа потребителей"
+        ]
+      }
+    },
+    {
+      "topic": "idempotency_keys",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Хранить результат запроса по ключу и возвращать его при повторе"},
+      "payload": {
+        "text": "Как правильно реализовать idempotency key для HTTP POST?",
+        "options": [
+          "Хранить результат запроса по ключу и возвращать его при повторе",
+          "Отклонять все повторные запросы с 409",
+          "Использовать ETag в ответе",
+          "Хранить хеш тела запроса без ключа"
+        ]
+      }
+    },
+    {
+      "topic": "observability",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Что относится к категории observability «{category}»?",
+        "variables": {
+          "category": [
+            {"value": "metrics", "answer": "Числовые измерения системы во времени, агрегируемые и alertable"},
+            {"value": "logs", "answer": "Текстовые записи о событиях с контекстом"},
+            {"value": "traces", "answer": "Сквозной путь запроса через все сервисы"}
+          ]
+        },
+        "options": [
+          "Числовые измерения системы во времени, агрегируемые и alertable",
+          "Текстовые записи о событиях с контекстом",
+          "Сквозной путь запроса через все сервисы",
+          "Автоматическое восстановление после сбоев"
+        ]
+      }
+    },
+    {
+      "topic": "partitioning",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Позволяет эффективно работать с большими таблицами через разбиение по ключу"},
+      "payload": {
+        "text": "Зачем нужно партиционирование таблиц в PostgreSQL?",
+        "options": [
+          "Позволяет эффективно работать с большими таблицами через разбиение по ключу",
+          "Ускоряет JOIN между любыми таблицами",
+          "Отключает блокировки при UPDATE",
+          "Автоматически создаёт индексы"
+        ]
+      }
+    },
+    {
+      "topic": "leader_election",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Защита от split-brain через большинство голосов (quorum)"},
+      "payload": {
+        "text": "Как лидер выбирается в распределённых системах вроде etcd или Consul?",
+        "options": [
+          "Защита от split-brain через большинство голосов (quorum)",
+          "Случайным образом каждые 5 секунд",
+          "По возрастанию IP-адреса",
+          "Всегда выбирается узел с наибольшей нагрузкой"
+        ]
+      }
+    },
+    {
+      "topic": "event_sourcing",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Состояние восстанавливается переигровкой событий из журнала"},
+      "payload": {
+        "text": "Что такое Event Sourcing?",
+        "options": [
+          "Состояние восстанавливается переигровкой событий из журнала",
+          "Синхронная репликация в несколько баз",
+          "Хранение состояния в кэше",
+          "Автоматическая балансировка нагрузки"
+        ]
+      }
+    },
+    {
+      "topic": "caching_strategies",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Какая стратегия кэширования описана: «{description}»?",
+        "variables": {
+          "description": [
+            {"value": "данные пишутся в кэш и БД одновременно", "answer": "Write-through"},
+            {"value": "данные пишутся только в кэш, в БД позже асинхронно", "answer": "Write-behind"},
+            {"value": "данные читаются из кэша, при промахе — из БД и кладутся в кэш", "answer": "Cache-aside"}
+          ]
+        },
+        "options": ["Write-through", "Write-behind", "Cache-aside", "Read-replica"]
+      }
+    },
+    {
+      "topic": "sql_deadlock",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Взаимная блокировка транзакций, СУБД откатывает одну из них"},
+      "payload": {
+        "text": "Что такое deadlock в БД?",
+        "options": [
+          "Взаимная блокировка транзакций, СУБД откатывает одну из них",
+          "Долгая блокировка на чтение",
+          "Ошибка индекса",
+          "Потеря соединения с БД"
+        ]
+      }
+    },
+    {
+      "topic": "load_balancing",
+      "type": "single_choice",
+      "difficulty": 4,
+      "payload": {
+        "text_template": "Какой алгоритм балансировки нагрузки выбрать, если {condition}?",
+        "variables": {
+          "condition": [
+            {"value": "нужно учитывать текущую нагрузку узлов", "answer": "Least connections"},
+            {"value": "сессии клиентов должны попадать на тот же узел", "answer": "IP hash / sticky sessions"},
+            {"value": "запросы распределены равномерно без учёта состояния", "answer": "Round robin"}
+          ]
+        },
+        "options": ["Round robin", "Least connections", "IP hash / sticky sessions", "Random"]
+      }
+    },
+    {
+      "topic": "security_oauth",
+      "type": "single_choice",
+      "difficulty": 4,
+      "correct_answer": {"value": "Authorization Code Flow с PKCE"},
+      "payload": {
+        "text": "Какой flow OAuth 2.0 рекомендуется для SPA и мобильных приложений?",
+        "options": [
+          "Authorization Code Flow с PKCE",
+          "Implicit Flow",
+          "Resource Owner Password Credentials",
+          "Client Credentials"
+        ]
+      }
+    },
+    {
+      "topic": "zero_downtime",
+      "type": "single_choice",
+      "difficulty": 5,
+      "correct_answer": {"value": "Сначала добавить новую колонку с nullable, потом постепенно переключить, потом удалить старую"},
+      "payload": {
+        "text": "Как безопасно переименовать колонку в БД без простоя?",
+        "options": [
+          "Сначала добавить новую колонку с nullable, потом постепенно переключить, потом удалить старую",
+          "Просто выполнить ALTER TABLE RENAME COLUMN",
+          "Остановить сервис, сделать бэкап и переименовать",
+          "Использовать TRUNCATE и пересоздать таблицу"
+        ]
+      }
+    }
+  ]
+}

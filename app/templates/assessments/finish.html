@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Завершить тест</h1>
+<p>Вы ответили на все вопросы. Нажмите кнопку, чтобы получить результат.</p>
+
+<form method="post" action="/assessments/attempt/{{ attempt_id }}/finish">
+  <button type="submit" class="btn">Завершить и посмотреть результат</button>
+</form>
+{% endblock %}

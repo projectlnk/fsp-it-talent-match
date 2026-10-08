@@ -1,0 +1,162 @@
+{
+  "specialization": "backend",
+  "grade": "intern",
+  "questions": [
+    {
+      "topic": "http_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "Протокол передачи гипертекста"},
+      "payload": {
+        "text": "Что такое HTTP?",
+        "options": [
+          "Протокол передачи гипертекста",
+          "База данных",
+          "Язык программирования",
+          "Фреймворк для фронтенда"
+        ]
+      }
+    },
+    {
+      "topic": "http_methods",
+      "type": "single_choice",
+      "difficulty": 1,
+      "payload": {
+        "text_template": "Какой HTTP-метод используется, чтобы {action}?",
+        "variables": {
+          "action": [
+            {"value": "получить данные без изменения состояния", "answer": "GET"},
+            {"value": "создать новый ресурс", "answer": "POST"},
+            {"value": "полностью заменить существующий ресурс", "answer": "PUT"},
+            {"value": "удалить ресурс", "answer": "DELETE"},
+            {"value": "частично обновить ресурс", "answer": "PATCH"}
+          ]
+        },
+        "options": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+      }
+    },
+    {
+      "topic": "git_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "Зафиксированное состояние файлов в репозитории"},
+      "payload": {
+        "text": "Что такое коммит в Git?",
+        "options": [
+          "Зафиксированное состояние файлов в репозитории",
+          "Список изменённых файлов",
+          "Удалённая ветка",
+          "Резервная копия всей операционной системы"
+        ]
+      }
+    },
+    {
+      "topic": "sql_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "payload": {
+        "text_template": "Какая SQL-команда {action}?",
+        "variables": {
+          "action": [
+            {"value": "возвращает строки из таблицы", "answer": "SELECT"},
+            {"value": "добавляет новые строки в таблицу", "answer": "INSERT"},
+            {"value": "изменяет существующие строки", "answer": "UPDATE"},
+            {"value": "удаляет строки", "answer": "DELETE"}
+          ]
+        },
+        "options": ["SELECT", "INSERT", "UPDATE", "DELETE", "DROP"]
+      }
+    },
+    {
+      "topic": "python_types",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "Кортеж нельзя изменить после создания"},
+      "payload": {
+        "text": "Чем кортеж (tuple) в Python отличается от списка (list)?",
+        "options": [
+          "Кортеж нельзя изменить после создания",
+          "Кортеж может хранить только числа",
+          "Кортеж работает медленнее списка",
+          "Кортеж автоматически сортируется"
+        ]
+      }
+    },
+    {
+      "topic": "db_primary_key",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "Уникальный идентификатор строки в таблице"},
+      "payload": {
+        "text": "Что такое первичный ключ (primary key) в таблице БД?",
+        "options": [
+          "Уникальный идентификатор строки в таблице",
+          "Первая колонка таблицы",
+          "Индекс по всем полям",
+          "Внешний ключ на другую таблицу"
+        ]
+      }
+    },
+    {
+      "topic": "rest_principles",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Что означает принцип REST «{principle}»?",
+        "variables": {
+          "principle": [
+            {"value": "stateless", "answer": "Сервер не хранит состояние клиента между запросами"},
+            {"value": "client-server", "answer": "Клиент и сервер разделены и развиваются независимо"},
+            {"value": "uniform interface", "answer": "Все ресурсы доступны через единообразный интерфейс"}
+          ]
+        },
+        "options": [
+          "Сервер не хранит состояние клиента между запросами",
+          "Клиент и сервер разделены и развиваются независимо",
+          "Все ресурсы доступны через единообразный интерфейс",
+          "Данные передаются только в формате XML"
+        ]
+      }
+    },
+    {
+      "topic": "encoding",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "UTF-8"},
+      "payload": {
+        "text": "Какая кодировка сегодня считается стандартом для веб-приложений?",
+        "options": ["UTF-8", "ASCII", "Windows-1251", "KOI8-R"]
+      }
+    },
+    {
+      "topic": "testing_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "Проверяет отдельную функцию или модуль в изоляции"},
+      "payload": {
+        "text": "Что такое unit-тест?",
+        "options": [
+          "Проверяет отдельную функцию или модуль в изоляции",
+          "Проверяет всю систему целиком в браузере",
+          "Тест, который запускает пользователь вручную",
+          "Тест производительности базы данных"
+        ]
+      }
+    },
+    {
+      "topic": "docker_basics",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "Запущенный экземпляр образа"},
+      "payload": {
+        "text": "Что такое Docker-контейнер?",
+        "options": [
+          "Запущенный экземпляр образа",
+          "Файл с инструкциями для сборки",
+          "Виртуальная машина с полной ОС",
+          "Удалённый репозиторий образов"
+        ]
+      }
+    }
+  ]
+}

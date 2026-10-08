@@ -1,0 +1,156 @@
+{
+  "specialization": "frontend",
+  "grade": "intern",
+  "questions": [
+    {
+      "topic": "html_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "HyperText Markup Language"},
+      "payload": {
+        "text": "Что означает аббревиатура HTML?",
+        "options": [
+          "HyperText Markup Language",
+          "High-level Text Machine Language",
+          "Home Tool Markup Language",
+          "Hyperlink and Text Management Language"
+        ]
+      }
+    },
+    {
+      "topic": "html_semantics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "payload": {
+        "text_template": "Какой семантический тег использовать для {purpose}?",
+        "variables": {
+          "purpose": [
+            {"value": "основной навигации по сайту", "answer": "<nav>"},
+            {"value": "шапки страницы", "answer": "<header>"},
+            {"value": "основного содержимого страницы", "answer": "<main>"},
+            {"value": "подвала страницы", "answer": "<footer>"},
+            {"value": "самостоятельной статьи", "answer": "<article>"}
+          ]
+        },
+        "options": ["<nav>", "<header>", "<main>", "<footer>", "<article>", "<div>"]
+      }
+    },
+    {
+      "topic": "css_selectors",
+      "type": "single_choice",
+      "difficulty": 1,
+      "payload": {
+        "text_template": "Какой CSS-селектор выбирает элементы по {description}?",
+        "variables": {
+          "description": [
+            {"value": "классу", "answer": ".class"},
+            {"value": "идентификатору", "answer": "#id"},
+            {"value": "тегу", "answer": "tag"},
+            {"value": "атрибуту", "answer": "[attr]"}
+          ]
+        },
+        "options": [".class", "#id", "tag", "[attr]", "*", ":hover"]
+      }
+    },
+    {
+      "topic": "css_box_model",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "content → padding → border → margin"},
+      "payload": {
+        "text": "В каком порядке располагаются слои блочной модели CSS от центра к периферии?",
+        "options": [
+          "content → padding → border → margin",
+          "content → margin → border → padding",
+          "margin → border → padding → content",
+          "padding → border → content → margin"
+        ]
+      }
+    },
+    {
+      "topic": "js_types",
+      "type": "single_choice",
+      "difficulty": 1,
+      "payload": {
+        "text_template": "Какой typeof вернёт выражение `typeof {expr}`?",
+        "variables": {
+          "expr": [
+            {"value": "42", "answer": "\"number\""},
+            {"value": "\"hello\"", "answer": "\"string\""},
+            {"value": "true", "answer": "\"boolean\""},
+            {"value": "undefined", "answer": "\"undefined\""},
+            {"value": "null", "answer": "\"object\""}
+          ]
+        },
+        "options": ["\"number\"", "\"string\"", "\"boolean\"", "\"undefined\"", "\"object\"", "\"null\""]
+      }
+    },
+    {
+      "topic": "js_equality",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "true"},
+      "payload": {
+        "text": "Что вернёт выражение `0 == '0'` в JavaScript?",
+        "options": ["true", "false", "NaN", "TypeError"]
+      }
+    },
+    {
+      "topic": "js_strict_equality",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "false"},
+      "payload": {
+        "text": "Что вернёт выражение `0 === '0'` в JavaScript?",
+        "options": ["true", "false", "NaN", "TypeError"]
+      }
+    },
+    {
+      "topic": "js_array_methods",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Какой метод массива {description}?",
+        "variables": {
+          "description": [
+            {"value": "создаёт новый массив, применив функцию к каждому элементу", "answer": "map"},
+            {"value": "возвращает новый массив только с элементами, прошедшими проверку", "answer": "filter"},
+            {"value": "возвращает первое найденное значение", "answer": "find"},
+            {"value": "выполняет функцию для каждого элемента, но ничего не возвращает", "answer": "forEach"}
+          ]
+        },
+        "options": ["map", "filter", "find", "forEach", "reduce", "some"]
+      }
+    },
+    {
+      "topic": "dom_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "document.querySelector('.btn')"},
+      "payload": {
+        "text": "Как найти первый элемент с классом btn в DOM?",
+        "options": [
+          "document.querySelector('.btn')",
+          "document.getElementByClass('btn')",
+          "document.find('.btn')",
+          "document.select('.btn')"
+        ]
+      }
+    },
+    {
+      "topic": "http_basics",
+      "type": "single_choice",
+      "difficulty": 1,
+      "correct_answer": {"value": "fetch('/api/data').then(r => r.json())"},
+      "payload": {
+        "text": "Как сделать GET-запрос на /api/data через fetch?",
+        "options": [
+          "fetch('/api/data').then(r => r.json())",
+          "fetch.get('/api/data')",
+          "http.get('/api/data')",
+          "request('/api/data')"
+        ]
+      }
+    }
+  ]
+}

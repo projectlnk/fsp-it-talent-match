@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Тест: {{ spec.name }} / {{ grade.name }}</h1>
+<p class="muted">Вопрос {{ answered_count + 1 }} из {{ total }}</p>
+
+<div class="question-box">
+  <p class="question-text">{{ current.text }}</p>
+  <form method="post" action="/assessments/attempt/{{ attempt.id }}/answer" class="form">
+    <input type="hidden" name="answer_id" value="{{ current.answer_id }}">
+    <div class="options">
+      {% for opt in current.options %}
+        <label class="option">
+          <input type="radio" name="value" value="{{ opt }}" required>
+          <span>{{ opt }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    <button type="submit">Ответить и продолжить</button>
+  </form>
+</div>
+{% endblock %}

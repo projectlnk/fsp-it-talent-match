@@ -1,0 +1,185 @@
+{
+  "specialization": "frontend",
+  "grade": "junior",
+  "questions": [
+    {
+      "topic": "css_specificity",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "inline-стиль"},
+      "payload": {
+        "text": "Какой селектор имеет наивысшую специфичность?",
+        "options": [
+          "inline-стиль",
+          "селектор по id",
+          "селектор по классу",
+          "селектор по тегу"
+        ]
+      }
+    },
+    {
+      "topic": "css_flexbox",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Какое CSS-свойство выравнивает flex-элементы {description}?",
+        "variables": {
+          "description": [
+            {"value": "по главной оси", "answer": "justify-content"},
+            {"value": "по поперечной оси", "answer": "align-items"},
+            {"value": "между несколькими строками", "answer": "align-content"}
+          ]
+        },
+        "options": ["justify-content", "align-items", "align-content", "flex-direction"]
+      }
+    },
+    {
+      "topic": "css_position",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Какое значение position {description}?",
+        "variables": {
+          "description": [
+            {"value": "позиционирует элемент относительно ближайшего позиционированного предка", "answer": "absolute"},
+            {"value": "фиксирует элемент относительно окна браузера", "answer": "fixed"},
+            {"value": "оставляет элемент в потоке, но позволяет сдвигать его", "answer": "relative"},
+            {"value": "прилипает при скролле, оставаясь в потоке", "answer": "sticky"}
+          ]
+        },
+        "options": ["static", "relative", "absolute", "fixed", "sticky"]
+      }
+    },
+    {
+      "topic": "js_hoisting",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "undefined"},
+      "payload": {
+        "text": "Что выведет код: `console.log(x); var x = 5;`?",
+        "options": ["undefined", "5", "ReferenceError", "null"]
+      }
+    },
+    {
+      "topic": "js_let_const",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Что верно про {keyword}?",
+        "variables": {
+          "keyword": [
+            {"value": "let", "answer": "Блочная область видимости, можно переприсвоить"},
+            {"value": "const", "answer": "Блочная область видимости, нельзя переприсвоить"},
+            {"value": "var", "answer": "Функциональная область видимости, всплывает"}
+          ]
+        },
+        "options": [
+          "Блочная область видимости, можно переприсвоить",
+          "Блочная область видимости, нельзя переприсвоить",
+          "Функциональная область видимости, всплывает",
+          "Не имеет области видимости"
+        ]
+      }
+    },
+    {
+      "topic": "js_closures",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "1, 2, 3"},
+      "payload": {
+        "text": "Что выведет код: `for (let i = 1; i <= 3; i++) setTimeout(() => console.log(i), 0);`?",
+        "options": ["1, 2, 3", "3, 3, 3", "0, 1, 2", "undefined, undefined, undefined"]
+      }
+    },
+    {
+      "topic": "js_event_loop",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Синхронный код → микрозадачи → макрозадачи"},
+      "payload": {
+        "text": "В каком порядке выполняется код в JavaScript?",
+        "options": [
+          "Синхронный код → микрозадачи → макрозадачи",
+          "Макрозадачи → микрозадачи → синхронный код",
+          "Микрозадачи → синхронный код → макрозадачи",
+          "Все параллельно"
+        ]
+      }
+    },
+    {
+      "topic": "react_state",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Асинхронно и пакетно: значение обновится к следующему рендеру"},
+      "payload": {
+        "text": "Как работает setState / useState в React?",
+        "options": [
+          "Асинхронно и пакетно: значение обновится к следующему рендеру",
+          "Синхронно: сразу после вызова значение изменено",
+          "Никогда не батчится",
+          "Обновляет DOM напрямую"
+        ]
+      }
+    },
+    {
+      "topic": "react_keys",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Помогает React эффективно переиспользовать DOM-элементы списка"},
+      "payload": {
+        "text": "Зачем нужен атрибут key в списках React?",
+        "options": [
+          "Помогает React эффективно переиспользовать DOM-элементы списка",
+          "Обязателен для доступности (a11y)",
+          "Задаёт CSS-класс элемента",
+          "Ускоряет сетевые запросы"
+        ]
+      }
+    },
+    {
+      "topic": "async_await",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Приостанавливает выполнение async-функции до разрешения промиса"},
+      "payload": {
+        "text": "Что делает await внутри async-функции?",
+        "options": [
+          "Приостанавливает выполнение async-функции до разрешения промиса",
+          "Блокирует главный поток",
+          "Запускает код в отдельном потоке",
+          "Преобразует промис в callback"
+        ]
+      }
+    },
+    {
+      "topic": "event_bubbling",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "Всплытие события от целевого элемента вверх по дереву"},
+      "payload": {
+        "text": "Что такое event bubbling?",
+        "options": [
+          "Всплытие события от целевого элемента вверх по дереву",
+          "Погружение события от корня к цели",
+          "Отмена события",
+          "Остановка распространения"
+        ]
+      }
+    },
+    {
+      "topic": "cors",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Механизм браузера, разрешающий запросы на другой origin только с явного согласия сервера"},
+      "payload": {
+        "text": "Что такое CORS?",
+        "options": [
+          "Механизм браузера, разрешающий запросы на другой origin только с явного согласия сервера",
+          "Шифрование HTTP-трафика",
+          "Альтернатива cookies",
+          "Способ минификации JS"
+        ]
+      }
+    }
+  ]
+}

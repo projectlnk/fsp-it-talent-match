@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Профиль компании</h1>
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+<form method="post" action="/employer/profile" class="form">
+  <label>Название компании
+    <input type="text" name="company_name" required maxlength="255" value="{{ profile.company_name }}">
+  </label>
+  <label>Описание
+    <textarea name="description" rows="5">{{ profile.description or '' }}</textarea>
+  </label>
+  <label>Сфера деятельности
+    <input type="text" name="industry" maxlength="255" value="{{ profile.industry or '' }}">
+  </label>
+  <label>Сайт
+    <input type="text" name="website" maxlength="255" value="{{ profile.website or '' }}">
+  </label>
+  <div class="form-row">
+    <label>Контактный email
+      <input type="email" name="contact_email" maxlength="255" value="{{ profile.contact_email or '' }}">
+    </label>
+    <label>Контактный телефон
+      <input type="text" name="contact_phone" maxlength="50" value="{{ profile.contact_phone or '' }}">
+    </label>
+  </div>
+  <button type="submit">Сохранить профиль</button>
+</form>
+{% endblock %}

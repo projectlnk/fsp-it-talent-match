@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Профиль кандидата</h1>
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+<form method="post" action="/candidate/profile" class="form">
+  <label>ФИО
+    <input type="text" name="full_name" required maxlength="255" value="{{ profile.full_name }}">
+  </label>
+  <label>Телефон
+    <input type="text" name="phone" maxlength="50" value="{{ profile.phone or '' }}">
+  </label>
+  <label>Локация
+    <input type="text" name="location" maxlength="255" value="{{ profile.location or '' }}">
+  </label>
+  <label>О себе
+    <textarea name="about" rows="4">{{ profile.about or '' }}</textarea>
+  </label>
+  <label>Желаемая роль
+    <input type="text" name="desired_role" maxlength="255" value="{{ profile.desired_role or '' }}">
+  </label>
+  <div class="form-row">
+    <label>Зарплата от
+      <input type="number" name="desired_salary_from" min="0" value="{{ profile.desired_salary_from or '' }}">
+    </label>
+    <label>Зарплата до
+      <input type="number" name="desired_salary_to" min="0" value="{{ profile.desired_salary_to or '' }}">
+    </label>
+  </div>
+  <label>Формат работы
+    <select name="work_format">
+      <option value="">Не указано</option>
+      {% for wf in work_formats %}
+        <option value="{{ wf.value }}" {% if profile.work_format and profile.work_format.value == wf.value %}selected{% endif %}>
+          {% if wf.value == 'office' %}Офис{% elif wf.value == 'remote' %}Удалённо{% else %}Гибрид{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Опыт, лет
+    <input type="number" name="experience_years" min="0" max="80" value="{{ profile.experience_years or '' }}">
+  </label>
+  <button type="submit">Сохранить профиль</button>
+</form>
+
+<section class="profile-section">
+  <h2>Навыки</h2>
+  {% if profile.skills %}
+    <ul class="chip-list">
+      {% for skill in profile.skills %}
+        <li class="chip">
+          {{ skill.skill }}{% if skill.level %} — {{ skill.level }}{% endif %}
+          <form method="post" action="/candidate/profile/skills/{{ skill.id }}/delete" class="inline">
+            <button type="submit" class="chip-remove" title="Удалить">×</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">Навыки пока не добавлены.</p>
+  {% endif %}
+  <form method="post" action="/candidate/profile/skills" class="form form-inline">
+    <input type="text" name="skill" placeholder="Например, Python" required maxlength="100">
+    <input type="text" name="level" placeholder="Уровень (опционально)" maxlength="50">
+    <button type="submit">Добавить</button>
+  </form>
+</section>
+
+<section class="profile-section">
+  <h2>Опыт работы</h2>
+  {% if profile.experiences %}
+    <ul class="experience-list">
+      {% for e in profile.experiences %}
+        <li class="experience-item">
+          <div class="experience-head">
+            <strong>{{ e.position }}</strong> — {{ e.company_name }}
+            <form method="post" action="/candidate/profile/experiences/{{ e.id }}/delete" class="inline">
+              <button type="submit" class="chip-remove" title="Удалить">×</button>
+            </form>
+          </div>
+          <div class="muted">
+            {% if e.started_at %}{{ e.started_at }}{% endif %}
+            {% if e.ended_at %} — {{ e.ended_at }}{% elif e.is_current %} — по настоящее время{% endif %}
+          </div>
+          {% if e.description %}<p>{{ e.description }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">Опыт пока не добавлен.</p>
+  {% endif %}
+
+  <form method="post" action="/candidate/profile/experiences" class="form">
+    <label>Компания
+      <input type="text" name="company_name" required maxlength="255">
+    </label>
+    <label>Должность
+      <input type="text" name="position" required maxlength="255">
+    </label>
+    <div class="form-row">
+      <label>Начало
+        <input type="date" name="started_at">
+      </label>
+      <label>Окончание
+        <input type="date" name="ended_at">
+      </label>
+    </div>
+    <label>Описание
+      <textarea name="description" rows="3"></textarea>
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="is_current" value="1">
+      Работаю здесь по настоящее время
+    </label>
+    <button type="submit">Добавить опыт</button>
+  </form>
+</section>
+{% endblock %}

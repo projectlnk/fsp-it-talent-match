@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Подтверждение email</h1>
+<div class="alert {% if success %}alert-success{% else %}alert-error{% endif %}">{{ message }}</div>
+<p><a href="/auth/login">Перейти ко входу</a></p>
+{% endblock %}
