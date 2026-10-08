@@ -23,4 +23,5 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+python_classes = ["Test*Case"]
 markers = ["integration: requires Compose services", "e2e: requires app and Chromium"]
