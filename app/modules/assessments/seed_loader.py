@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.modules.assessments.models import Grade, Question, QuestionType, Specialization
@@ -65,7 +65,10 @@ def load_questions_from_file(session: Session, path: Path) -> tuple[int, int]:
                 Question.topic == item.get("topic"),
                 Question.type == qtype,
                 # сравниваем по каноническому тексту через JSONB ->> text_template
-                Question.payload["text_template"].astext == key_text,
+                func.coalesce(
+                    Question.payload["text_template"].astext,
+                    Question.payload["text"].astext,
+                ) == key_text
             )
         )
 
