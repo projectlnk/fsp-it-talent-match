@@ -96,7 +96,7 @@ def test_token_signed_with_other_secret_raises():
     settings = get_settings()
     foreign = jwt.encode(
         {"sub": "1", "exp": datetime.now(UTC) + timedelta(minutes=5)},
-        "some-other-secret",
+        "some-other-secret-key-of-appropriate-length",
         algorithm=settings.jwt_algorithm,
     )
     with pytest.raises(jwt.InvalidTokenError):
