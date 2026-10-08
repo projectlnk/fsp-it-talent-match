@@ -3,19 +3,203 @@
   "grade": "junior",
   "questions": [
     {
-      "topic": "http",
+      "topic": "http_status",
       "type": "single_choice",
       "difficulty": 2,
       "payload": {
-        "text_template": "Какой статус-код вернёт сервер, если {scenario}?",
+        "text_template": "Какой HTTP-статус вернёт сервер, если {scenario}?",
         "variables": {
           "scenario": [
+            {"value": "клиент не авторизован", "answer": "401"},
+            {"value": "у клиента нет прав на ресурс", "answer": "403"},
             {"value": "ресурс не найден", "answer": "404"},
-            {"value": "пользователь не авторизован", "answer": "401"},
-            {"value": "запрос невалиден", "answer": "400"}
+            {"value": "метод не поддерживается", "answer": "405"},
+            {"value": "сервер упал", "answer": "500"},
+            {"value": "сервис временно недоступен", "answer": "503"}
           ]
         },
-        "options": ["200", "400", "401", "404", "500"]
+        "options": ["200", "201", "301", "401", "403", "404", "405", "500", "503"]
+      }
+    },
+    {
+      "topic": "sql_joins",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Какой тип JOIN вернёт {description}?",
+        "variables": {
+          "description": [
+            {"value": "только строки, у которых есть совпадение в обеих таблицах", "answer": "INNER JOIN"},
+            {"value": "все строки левой таблицы и совпадения из правой", "answer": "LEFT JOIN"},
+            {"value": "все строки правой таблицы и совпадения из левой", "answer": "RIGHT JOIN"},
+            {"value": "все строки из обеих таблиц, даже без совпадений", "answer": "FULL OUTER JOIN"}
+          ]
+        },
+        "options": ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL OUTER JOIN", "CROSS JOIN"]
+      }
+    },
+    {
+      "topic": "git_operations",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "Переписывает историю коммитов, перенося их на новую базу"},
+      "payload": {
+        "text": "Чем git rebase отличается от git merge?",
+        "options": [
+          "Переписывает историю коммитов, перенося их на новую базу",
+          "Полностью удаляет ветку",
+          "Работает только с удалённым репозиторием",
+          "Создаёт merge-коммит"
+        ]
+      }
+    },
+    {
+      "topic": "oop",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Что описывает принцип ООП «{principle}»?",
+        "variables": {
+          "principle": [
+            {"value": "инкапсуляция", "answer": "Скрытие внутреннего состояния объекта за публичным интерфейсом"},
+            {"value": "наследование", "answer": "Создание нового класса на основе существующего"},
+            {"value": "полиморфизм", "answer": "Возможность работать с разными типами через один интерфейс"}
+          ]
+        },
+        "options": [
+          "Скрытие внутреннего состояния объекта за публичным интерфейсом",
+          "Создание нового класса на основе существующего",
+          "Возможность работать с разными типами через один интерфейс",
+          "Разделение программы на микросервисы"
+        ]
+      }
+    },
+    {
+      "topic": "python_comprehension",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Что вернёт выражение `{expr}`?",
+        "variables": {
+          "expr": [
+            {"value": "[x * 2 for x in range(3)]", "answer": "[0, 2, 4]"},
+            {"value": "[x for x in range(5) if x % 2 == 0]", "answer": "[0, 2, 4]"},
+            {"value": "[x for x in range(3)]", "answer": "[0, 1, 2]"}
+          ]
+        },
+        "options": ["[0, 1, 2]", "[0, 2, 4]", "[1, 2, 3]", "[0, 1, 2, 3, 4]"]
+      }
+    },
+    {
+      "topic": "rest_methods",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Является ли HTTP-метод {method} идемпотентным?",
+        "variables": {
+          "method": [
+            {"value": "GET", "answer": "Да"},
+            {"value": "PUT", "answer": "Да"},
+            {"value": "DELETE", "answer": "Да"},
+            {"value": "POST", "answer": "Нет"}
+          ]
+        },
+        "options": ["Да", "Нет"]
+      }
+    },
+    {
+      "topic": "async_basics",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Позволяет выполнять другие задачи, пока идёт ожидание I/O"},
+      "payload": {
+        "text": "Зачем нужна асинхронность в backend-разработке?",
+        "options": [
+          "Позволяет выполнять другие задачи, пока идёт ожидание I/O",
+          "Ускоряет работу процессора",
+          "Заменяет базы данных",
+          "Уменьшает размер Docker-образа"
+        ]
+      }
+    },
+    {
+      "topic": "db_index",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Ускоряет поиск, но замедляет вставку и обновление"},
+      "payload": {
+        "text": "Что даёт индекс в базе данных?",
+        "options": [
+          "Ускоряет поиск, но замедляет вставку и обновление",
+          "Ускоряет всё: и поиск, и запись",
+          "Уменьшает размер таблицы",
+          "Автоматически сортирует данные"
+        ]
+      }
+    },
+    {
+      "topic": "testing_pytest",
+      "type": "single_choice",
+      "difficulty": 2,
+      "correct_answer": {"value": "Создаёт фикстуру для подготовки данных теста"},
+      "payload": {
+        "text": "Что делает декоратор @pytest.fixture?",
+        "options": [
+          "Создаёт фикстуру для подготовки данных теста",
+          "Помечает тест как ожидаемо падающий",
+          "Пропускает тест",
+          "Запускает тест в отдельном процессе"
+        ]
+      }
+    },
+    {
+      "topic": "serialization",
+      "type": "single_choice",
+      "difficulty": 2,
+      "payload": {
+        "text_template": "Какой формат сериализации {feature}?",
+        "variables": {
+          "feature": [
+            {"value": "самый компактный для передачи в веб-API", "answer": "JSON"},
+            {"value": "поддерживает комментарии и часто используется в конфигах", "answer": "YAML"},
+            {"value": "бинарный и самый быстрый, но нечитаемый человеком", "answer": "MessagePack"}
+          ]
+        },
+        "options": ["JSON", "XML", "YAML", "MessagePack"]
+      }
+    },
+    {
+      "topic": "sql_group_by",
+      "type": "single_choice",
+      "difficulty": 3,
+      "payload": {
+        "text_template": "Что вернёт запрос `SELECT {func}({col}) FROM users GROUP BY {group}`?",
+        "variables": {
+          "func": [{"value": "COUNT", "answer": "COUNT"}],
+          "col": [{"value": "*", "answer": "COUNT"}],
+          "group": [{"value": "role", "answer": "COUNT"}]
+        },
+        "options": [
+          "Количество пользователей в каждой роли",
+          "Общее количество пользователей",
+          "Список всех ролей без количества",
+          "Ошибку синтаксиса"
+        ]
+      }
+    },
+    {
+      "topic": "password_hashing",
+      "type": "single_choice",
+      "difficulty": 3,
+      "correct_answer": {"value": "Медленный алгоритм со случайной солью на каждый пароль"},
+      "payload": {
+        "text": "Какой подход к хранению паролей считается правильным?",
+        "options": [
+          "Медленный алгоритм со случайной солью на каждый пароль",
+          "MD5 без соли — быстро и удобно",
+          "Обратимое шифрование с общим ключом",
+          "Хранение в открытом виде в защищённой БД"
+        ]
       }
     }
   ]

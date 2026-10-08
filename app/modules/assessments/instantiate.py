@@ -48,6 +48,15 @@ def instantiate_question(question: Question, rng: random.Random) -> dict[str, An
 
     text = text_template.format(**chosen) if chosen else text_template
 
+    # Если у вопроса нет variables — это fixed-вопрос.
+    # Правильный ответ берём из Question.correct_answer.
+    if not variables:
+        raw = getattr(question, "correct_answer", None)
+        if isinstance(raw, dict):
+            correct = raw.get("value")
+        else:
+            correct = raw
+
     shuffled = list(options)
     rng.shuffle(shuffled)
 

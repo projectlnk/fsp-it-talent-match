@@ -72,6 +72,7 @@ def load_questions_from_file(session: Session, path: Path) -> tuple[int, int]:
         if existing is not None:
             existing.difficulty = item["difficulty"]
             existing.payload = payload
+            existing.correct_answer = item.get("correct_answer")
             existing.is_active = True
             updated += 1
             continue
@@ -83,7 +84,7 @@ def load_questions_from_file(session: Session, path: Path) -> tuple[int, int]:
                 topic=item.get("topic"),
                 type=qtype,
                 payload=payload,
-                correct_answer=None,  # правильный ответ лежит в payload.variables
+                correct_answer=item.get("correct_answer"),
                 difficulty=item["difficulty"],
                 is_active=True,
             )
