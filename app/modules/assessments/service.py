@@ -5,7 +5,7 @@ import random
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.modules.assessments.instantiate import (
@@ -67,6 +67,9 @@ class ActiveAttemptExists(AssessmentError):
 
 class AnswerNotFound(AssessmentError):
     """Ответ не найден."""
+
+class AttemptNotFinished(AssessmentError):
+    """Попытка ещё не завершена."""
 
 
 # --- Вспомогательные -------------------------------------------------------
@@ -227,8 +230,8 @@ def attempt_public_state(attempt: TestAttempt) -> dict[str, Any]:
         "answered_count": answered_count,
         "questions": items,
     }
-# --- Ответы на вопросы ----------------------------------------------------
 
+# --- Ответы на вопросы ----------------------------------------------------
 
 def submit_answer(
     session: Session,
@@ -268,3 +271,134 @@ def submit_answer(
     session.commit()
     session.refresh(answer)
     return answer
+
+# --- Финиш попытки и подсчёт ----------------------------------------------
+
+
+def _weighted_score(answers: list[TestAnswer]) -> float:
+    """Взвешенный счёт: вес правильного ответа = difficulty вопроса.
+
+    Возвращает долю от 0.0 до 1.0. Ответы без is_correct (не отвечено)
+    считаются неправильными.
+    """
+    total_weight = 0
+    correct_weight = 0
+    for answer in answers:
+        snap = answer.question_snapshot or {}
+        weight = max(1, int(snap.get("difficulty", 1)))
+        total_weight += weight
+        if answer.is_correct:
+            correct_weight += weight
+    if total_weight == 0:
+        return 0.0
+    return correct_weight / total_weight
+
+
+def finish_attempt(
+    session: Session,
+    *,
+    user_id: int,
+    attempt_id: int,
+) -> TestAttempt:
+    """Завершает попытку, считает взвешенный счёт, присваивает категорию.
+
+    Возвращает обновлённую попытку.
+    """
+    profile = _get_profile(session, user_id)
+    attempt = session.scalar(
+        select(TestAttempt)
+        .where(
+            TestAttempt.id == attempt_id,
+            TestAttempt.candidate_profile_id == profile.id,
+        )
+        .options(selectinload(TestAttempt.answers))
+    )
+    if attempt is None:
+        raise AttemptNotFound()
+    if attempt.status == AttemptStatus.COMPLETED:
+        raise AttemptAlreadyCompleted()
+    if attempt.status == AttemptStatus.ABANDONED:
+        raise AttemptAlreadyCompleted()
+
+    ratio = _weighted_score(list(attempt.answers))
+    attempt.score = int(round(ratio * 100))
+    attempt.passed = ratio >= PASS_THRESHOLD
+    attempt.status = AttemptStatus.COMPLETED
+    attempt.finished_at = datetime.now(UTC)
+
+    _apply_category(
+        session,
+        candidate_profile_id=profile.id,
+        specialization_id=attempt.specialization_id,
+        grade_id=attempt.target_grade_id,
+        passed=attempt.passed,
+        confirmed_at=attempt.finished_at if attempt.passed else None,
+    )
+
+    session.commit()
+    return get_attempt(session, attempt_id=attempt.id, user_id=user_id)
+
+
+def _apply_category(
+    session: Session,
+    *,
+    candidate_profile_id: int,
+    specialization_id: int,
+    grade_id: int,
+    passed: bool,
+    confirmed_at: datetime | None,
+) -> CandidateCategory:
+    """Создаёт новую запись CandidateCategory и снимает флаг is_current
+    с предыдущей.
+
+    История сохраняется: старые записи остаются в БД.
+    """
+    # Снимаем is_current со всех предыдущих записей этого кандидата
+    session.execute(
+        update(CandidateCategory)
+        .where(
+            CandidateCategory.candidate_profile_id == candidate_profile_id,
+            CandidateCategory.is_current.is_(True),
+        )
+        .values(is_current=False)
+    )
+
+    category = session.scalar(
+        select(Category).where(
+            Category.specialization_id == specialization_id,
+            Category.grade_id == grade_id,
+        )
+    )
+    if category is None:
+        raise SpecializationNotFound(
+            f"Категория для specialization_id={specialization_id}, "
+            f"grade_id={grade_id} не найдена"
+        )
+
+    record = CandidateCategory(
+        candidate_profile_id=candidate_profile_id,
+        category_id=category.id,
+        status=CategoryStatus.CONFIRMED if passed else CategoryStatus.NOT_CONFIRMED,
+        is_current=True,
+        confirmed_at=confirmed_at,
+    )
+    session.add(record)
+    session.flush()
+    return record
+
+
+def current_category(
+    session: Session,
+    *,
+    user_id: int,
+) -> CandidateCategory | None:
+    """Возвращает текущую категорию кандидата, если есть."""
+    profile = _get_profile(session, user_id)
+    return session.scalar(
+        select(CandidateCategory)
+        .where(
+            CandidateCategory.candidate_profile_id == profile.id,
+            CandidateCategory.is_current.is_(True),
+        )
+        .order_by(CandidateCategory.id.desc())
+    )
