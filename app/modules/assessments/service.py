@@ -65,6 +65,9 @@ class AttemptAlreadyCompleted(AssessmentError):
 class ActiveAttemptExists(AssessmentError):
     """Уже есть активная попытка по этой категории."""
 
+class AnswerNotFound(AssessmentError):
+    """Ответ не найден."""
+
 
 # --- Вспомогательные -------------------------------------------------------
 
@@ -212,6 +215,7 @@ def attempt_public_state(attempt: TestAttempt) -> dict[str, Any]:
         if finished:
             item["is_correct"] = answer.is_correct
         items.append(item)
+    answered_count = sum(1 for a in answers if a.answered_at is not None)
     return {
         "attempt_id": attempt.id,
         "status": attempt.status.value,
@@ -219,5 +223,48 @@ def attempt_public_state(attempt: TestAttempt) -> dict[str, Any]:
         "passed": attempt.passed,
         "started_at": attempt.started_at,
         "finished_at": attempt.finished_at,
+        "total_questions": len(items),
+        "answered_count": answered_count,
         "questions": items,
     }
+# --- Ответы на вопросы ----------------------------------------------------
+
+
+def submit_answer(
+    session: Session,
+    *,
+    user_id: int,
+    attempt_id: int,
+    answer_id: int,
+    answer_payload: dict[str, Any],
+) -> TestAnswer:
+    """Сохраняет ответ кандидата и сразу проверяет его правильность.
+
+    Проверка происходит здесь, потому что правильный ответ лежит в снапшоте
+    вопроса. Наружу `is_correct` не отдаётся, пока попытка не завершена.
+    """
+    profile = _get_profile(session, user_id)
+    answer = session.scalar(
+        select(TestAnswer)
+        .join(TestAttempt, TestAttempt.id == TestAnswer.test_attempt_id)
+        .where(
+            TestAnswer.id == answer_id,
+            TestAnswer.test_attempt_id == attempt_id,
+            TestAttempt.candidate_profile_id == profile.id,
+        )
+    )
+    if answer is None:
+        raise AttemptNotFound()
+
+    attempt = session.get(TestAttempt, attempt_id)
+    if attempt is None or attempt.status != AttemptStatus.IN_PROGRESS:
+        raise AttemptAlreadyCompleted()
+
+    snapshot = answer.question_snapshot or {}
+    answer.answer = answer_payload
+    answer.is_correct = is_correct(snapshot, answer_payload)
+    answer.answered_at = datetime.now(UTC)
+
+    session.commit()
+    session.refresh(answer)
+    return answer
