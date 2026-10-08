@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Результат тестирования</h1>
+
+<div class="alert {% if attempt.passed %}alert-success{% else %}alert-error{% endif %}">
+  {% if attempt.passed %}
+    Грейд <strong>{{ grade.name }}</strong> по специализации <strong>{{ spec.name }}</strong> подтверждён.
+  {% else %}
+    Грейд <strong>{{ grade.name }}</strong> не подтверждён.
+    {% if state.score is not none and state.score >= 40 %}
+      Вы можете попробовать пройти тест на грейд ниже.
+    {% else %}
+      Вы можете попробовать снова — попытка не сгорает.
+    {% endif %}
+  {% endif %}
+</div>
+
+<p>Счёт: <strong>{{ state.score }}%</strong> (взвешенный по сложности)</p>
+
+{% if current %}
+  <p>Текущая категория:
+    <strong>{{ current.specialization.name }} / {{ current.grade.name }}</strong>
+    ({{ 'подтверждён' if current.status == 'confirmed' else 'не подтверждён' }})
+  </p>
+{% endif %}
+
+{% if cooldown.active %}
+  <div class="alert alert-error">
+    Смена грейда доступна через {{ cooldown.days_left }} дн.
+  </div>
+{% endif %}
+
+<section class="profile-section">
+  <h2>Разбор ответов</h2>
+  <ol class="review-list">
+    {% for q in state.questions %}
+      <li class="review-item {% if q.is_correct %}review-correct{% else %}review-wrong{% endif %}">
+        <div class="review-text">{{ q.question.text }}</div>
+        <div class="muted">
+          Ваш ответ: {{ q.given.value if q.given and q.given.value else '—' }}
+          &nbsp;·&nbsp;
+          {% if q.is_correct %}Верно{% else %}Неверно{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+</section>
+
+<p>
+  <a href="/assessments">← К списку тестов</a>
+  &nbsp;·&nbsp;
+  <a href="/candidate/profile">Мой профиль</a>
+</p>
+{% endblock %}

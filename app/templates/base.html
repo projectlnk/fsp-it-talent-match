@@ -12,8 +12,9 @@
   <a class="brand" href="/">FSP IT Talent Match</a>
     <nav class="topnav">
     {% if user %}
-      {% if user.role.value == 'candidate' %}
+            {% if user.role.value == 'candidate' %}
         <a href="/candidate/profile">Мой профиль</a>
+        <a href="/assessments">Мои тесты</a>
       {% elif user.role.value == 'employer' %}
         <a href="/employer/profile">Профиль компании</a>
       {% endif %}
