@@ -120,9 +120,16 @@ class TestAnswer(Base):
         ForeignKey("test_attempts.id", ondelete="CASCADE"), index=True
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
-    answer: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Снапшот конкретного вопроса: текст, варианты, правильный ответ.
+    # Заполняется при старте попытки. Правильный ответ здесь лежит только
+    # для серверной проверки — в API наружу не отдаётся.
+    question_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Ответ кандидата. Пусто до того, как он ответит.
+    answer: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     is_correct: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    answered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    answered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     attempt: Mapped[TestAttempt] = relationship(back_populates="answers")
 
