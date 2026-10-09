@@ -12,6 +12,8 @@ from app.modules.employers import service
 from app.modules.matching import service as matching_service
 from app.modules.matching.schemas import CandidateSearchQuery
 from app.web.templates import templates
+from app.modules.employers.schemas import OfferCreate
+from app.modules.employers.service import OfferError
 
 router = APIRouter(prefix="/employer", tags=["employers-web"], include_in_schema=False)
 
@@ -156,4 +158,103 @@ def candidate_card(
         user,
         "employers/candidate_card.html",
         {"card": card, "error": None},
+    )
+
+# --- Приглашения ----------------------------------------------------------
+
+
+@router.post("/offers", response_class=HTMLResponse)
+def offer_create(
+    request: Request,
+    candidate_profile_id: int = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    salary_from: int = Form(...),
+    salary_to: int = Form(...),
+    salary_gross: str = Form(""),
+    contact_method: str = Form(""),
+    user: User = Depends(_EMPLOYER_ONLY),
+    session: Session = Depends(get_session),
+):
+    """Отправляет приглашение кандидату из карточки.
+
+    При неудаче возвращает на карточку с сообщением об ошибке.
+    """
+    try:
+        service.create_offer(
+            session,
+            employer_user_id=user.id,
+            payload=OfferCreate(
+                candidate_profile_id=candidate_profile_id,
+                title=title.strip(),
+                description=description.strip() or None,
+                salary_from=salary_from,
+                salary_to=salary_to,
+                salary_gross=bool(salary_gross),
+                contact_method=contact_method.strip() or None,
+            ),
+        )
+    except (OfferError, ValueError) as exc:
+        try:
+            card = matching_service.get_candidate_card(
+                session, profile_id=candidate_profile_id
+            )
+        except matching_service.MatchingError:
+            return RedirectResponse(
+                "/employer/search", status_code=status.HTTP_303_SEE_OTHER
+            )
+        return _render(
+            request,
+            user,
+            "employers/candidate_card.html",
+            {"card": card, "error": str(exc)},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return RedirectResponse(
+        "/employer/offers", status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@router.get("/offers", response_class=HTMLResponse)
+def offers_page(
+    request: Request,
+    user: User = Depends(_EMPLOYER_ONLY),
+    session: Session = Depends(get_session),
+):
+    """Список отправленных приглашений с текущими статусами."""
+    offers = service.list_employer_offers(session, user.id)
+    return _render(
+        request,
+        user,
+        "employers/offers.html",
+        {"offers": offers},
+    )
+
+
+@router.get("/offers/{offer_id}", response_class=HTMLResponse)
+def offer_detail(
+    request: Request,
+    offer_id: int,
+    user: User = Depends(_EMPLOYER_ONLY),
+    session: Session = Depends(get_session),
+):
+    """Детали приглашения.
+
+    Контакты кандидата показываются, только если приглашение принято.
+    """
+    try:
+        offer = service.get_offer_for_employer(
+            session, offer_id=offer_id, employer_user_id=user.id
+        )
+    except OfferError:
+        return RedirectResponse(
+            "/employer/offers", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    return _render(
+        request,
+        user,
+        "employers/offer_detail.html",
+        {"offer": offer},
     )

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Приглашение #{{ offer.id }}</h1>
+
+<p class="muted">Статус:
+  {% if offer.status == 'sent' %}<span class="badge">отправлено</span>
+  {% elif offer.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
+  {% elif offer.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
+  {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
+</p>
+
+<section class="profile-section">
+  <h2>Предложение</h2>
+  <dl class="kv">
+    <dt>Заголовок</dt><dd>{{ offer.title }}</dd>
+    {% if offer.description %}<dt>Описание</dt><dd>{{ offer.description }}</dd>{% endif %}
+    <dt>Зарплата</dt>
+    <dd>
+      {{ offer.salary_from }} – {{ offer.salary_to }} {{ offer.salary_currency }}
+      ({{ 'gross' if offer.salary_gross else 'net' }})
+    </dd>
+    {% if offer.contact_method %}<dt>Способ связи</dt><dd>{{ offer.contact_method }}</dd>{% endif %}
+    <dt>Отправлено</dt><dd>{{ offer.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+    {% if offer.viewed_at %}<dt>Просмотрено</dt><dd>{{ offer.viewed_at.strftime('%d.%m.%Y %H:%M') }}</dd>{% endif %}
+    {% if offer.responded_at %}<dt>Ответ</dt><dd>{{ offer.responded_at.strftime('%d.%m.%Y %H:%M') }}</dd>{% endif %}
+  </dl>
+</section>
+
+<section class="profile-section">
+  <h2>Кандидат</h2>
+  <p>
+    <strong>{{ offer.candidate.full_name }}</strong>
+    {% if offer.candidate.specialization_name %} · {{ offer.candidate.specialization_name }}{% endif %}
+    {% if offer.candidate.grade_name %} · {{ offer.candidate.grade_name }}{% endif %}
+  </p>
+  <p><a href="/employer/candidates/{{ offer.candidate.profile_id }}">Открыть карточку</a></p>
+</section>
+
+{% if offer.status == 'accepted' and offer.contacts %}
+  <section class="profile-section">
+    <h2>Контакты кандидата</h2>
+    <div class="alert alert-success">
+      Кандидат принял приглашение. Контакты открыты.
+    </div>
+    <dl class="kv">
+      {% if offer.contacts.email %}<dt>Email</dt><dd>{{ offer.contacts.email }}</dd>{% endif %}
+      {% if offer.contacts.phone %}<dt>Телефон</dt><dd>{{ offer.contacts.phone }}</dd>{% endif %}
+    </dl>
+  </section>
+{% elif offer.status == 'rejected' %}
+  <div class="alert alert-error">Кандидат отклонил приглашение. Контакты не раскрываются.</div>
+{% else %}
+  <div class="alert">
+    Контакты кандидата откроются после того, как он примет приглашение.
+  </div>
+{% endif %}
+
+<p><a href="/employer/offers">← Все приглашения</a></p>
+{% endblock %}
