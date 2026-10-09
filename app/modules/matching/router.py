@@ -24,8 +24,14 @@ _EMPLOYER_ONLY = require_role(UserRole.EMPLOYER)
 
 
 def _handle(exc: service.MatchingError) -> HTTPException:
+    if isinstance(exc, service.CandidateNotFound):
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        )
     if isinstance(exc, service.InvalidFilter):
-        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
