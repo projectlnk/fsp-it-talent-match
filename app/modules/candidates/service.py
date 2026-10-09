@@ -284,6 +284,14 @@ def link_and_import_fsp(
         )
         session.add(link)
     else:
+        # Если меняется participant_id — старые достижения больше не валидны,
+        # потому что они относятся к другому участнику реестра.
+        if link.registry_participant_id != participant_id:
+            session.execute(
+                delete(FspAchievement).where(
+                    FspAchievement.candidate_profile_id == profile.id
+                )
+            )
         link.registry_participant_id = participant_id
 
     created, updated = _upsert_achievements(
