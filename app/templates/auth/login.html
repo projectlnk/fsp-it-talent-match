@@ -1,16 +1,1 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Вход</h1>
-{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
-<form method="post" action="/auth/login" class="form">
-  <input type="hidden" name="next" value="{{ next }}">
-  <label>Email
-    <input type="email" name="email" required maxlength="255" value="{{ email }}">
-  </label>
-  <label>Пароль
-    <input type="password" name="password" required>
-  </label>
-  <button type="submit">Войти</button>
-</form>
-<p>Нет аккаунта? <a href="/auth/register">Зарегистрироваться</a></p>
-{% endblock %}
+{% extends "base.html" %}{% block content %}<div class="auth-layout"><section class="auth-aside"><p class="eyebrow">FSP IT Talent Match / Вход</p><h1>Рады видеть<br>вас снова.</h1><p>Продолжайте развивать профиль, подтверждать навыки и находить свою команду.</p><div class="auth-art" aria-hidden="true"></div></section><section class="card auth-card"><h2>Вход</h2><p>Войдите в кабинет кандидата или работодателя.</p>{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}<form method="post" action="/auth/login" class="form"><input type="hidden" name="next" value="{{ next }}"><label>Email<input type="email" name="email" required maxlength="255" autocomplete="email" value="{{ email }}"></label><label>Пароль<input type="password" name="password" required autocomplete="current-password"></label><button type="submit">Войти →</button></form><p class="auth-bottom">Нет аккаунта? <a href="/auth/register">Зарегистрироваться</a></p></section></div>{% endblock %}

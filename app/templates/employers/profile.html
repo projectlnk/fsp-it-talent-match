@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block content %}
-<h1>Профиль компании</h1>
+{% from 'components/ui.html' import heading %}{% block content %}{{ heading('Кабинет работодателя / Компания','Люди для вашей команды.','Заполните профиль компании, чтобы будущие кандидаты понимали, кто их приглашает.') }}<nav class="section-tabs"><a class="active" href="/employer/profile">Компания</a><a href="/design-preview/employer">Потребность · демо</a><a href="/design-preview/search">Подбор · демо</a><a href="/design-preview/invitation">Приглашения · демо</a></nav><div class="content-grid"><section class="card">
+<div class="card-heading"><div><h2>Профиль компании</h2><p>Расскажите о команде и оставьте рабочие контакты.</p></div></div>
 {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
 
 <form method="post" action="/employer/profile" class="form">
@@ -26,4 +26,4 @@
   </div>
   <button type="submit">Сохранить профиль</button>
 </form>
-{% endblock %}
+</section><aside class="stack"><section class="card"><span class="tag">Прототип</span><h2 style="margin-top:14px">Приглашайте напрямую</h2><p class="muted">Начните с человека и его навыков. Опубликованная вакансия не обязательна.</p><a class="button" href="/design-preview/search">Посмотреть подбор ↗</a></section><section class="card"><h2>Основа знакомства</h2><p class="muted">Категория, результаты тестов и опыт помогают оценить соответствие задачам.</p><a class="text-link" href="/design-preview/employer">Описать потребность · демо →</a></section></aside></div>{% endblock %}

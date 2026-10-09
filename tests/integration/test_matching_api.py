@@ -73,6 +73,7 @@ def _make_confirmed_candidate(email: str, spec: str = "backend", grade: str = "j
         profile = session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == user.id)
         )
+        profile.is_searchable = True
         s = session.scalar(select(Specialization).where(Specialization.code == spec))
         g = session.scalar(select(Grade).where(Grade.code == grade))
         cat = session.scalar(
@@ -127,7 +128,7 @@ def test_search_returns_confirmed_candidates(client):
     assert any(c["specialization_code"] == "backend" for c in body["items"])
 
 
-def test_search_result_has_ranking_reasons(client):
+def test_search_result_has_match_reasons(client):
     cand_email = _email()
     _register_and_login(client, cand_email, "candidate")
     _make_confirmed_candidate(cand_email, "backend", "junior")
@@ -141,9 +142,9 @@ def test_search_result_has_ranking_reasons(client):
     items = r.json()["items"]
     assert items
     card = items[0]
-    assert "ranking_score" in card
-    assert "ranking_reasons" in card
-    assert isinstance(card["ranking_reasons"], list)
+    assert "ranking_score" not in card
+    assert "match_reasons" in card
+    assert isinstance(card["match_reasons"], list)
 
 
 def test_search_result_has_no_contacts(client):
@@ -174,12 +175,12 @@ def test_pagination(client):
     r = client.get(
         "/api/v1/matching/candidates",
         headers=_auth(emp_token),
-        params={"limit": 2, "offset": 0},
+        params={"page_size": 2, "page": 1},
     )
     assert r.status_code == 200
     body = r.json()
     assert len(body["items"]) <= 2
-    assert body["meta"]["limit"] == 2
+    assert body["meta"]["page_size"] == 2
 
 
 # --- Карточка ------------------------------------------------------------

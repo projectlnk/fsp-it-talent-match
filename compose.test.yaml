@@ -1,0 +1,45 @@
+# Isolated test stack. Always pass -f compose.test.yaml and a distinct -p name.
+# Credentials below are disposable test values; no .env or production volume is used.
+services:
+  app:
+    build: .
+    image: fsp-matching-check:local
+    environment:
+      DATABASE_URL: postgresql+psycopg://fsp_test:fsp_test_only@db:5432/fsp_matching_test
+      FSP_BASE_URL: http://mini-fsp-id:8000
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      APP_BASE_URL: http://app:8000
+      JWT_SECRET_KEY: isolated-test-stack-only-change-before-production
+      RELOAD: 'false'
+    ports: ['127.0.0.1::8000']
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8000/readiness')"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fsp_matching_test
+      POSTGRES_USER: fsp_test
+      POSTGRES_PASSWORD: fsp_test_only
+    ports: ['127.0.0.1::5432']
+    volumes: ['postgres_test_data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fsp_test -d fsp_matching_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  mini-fsp-id:
+    image: fsp-matching-check:local
+    command: ['uvicorn', 'mock_fsp.main:app', '--host', '0.0.0.0', '--port', '8000']
+    ports: ['127.0.0.1::8000']
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ['127.0.0.1::8025', '127.0.0.1::1025']
+volumes:
+  postgres_test_data:

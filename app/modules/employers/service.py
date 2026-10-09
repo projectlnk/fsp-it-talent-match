@@ -10,6 +10,8 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
+from pydantic import ValidationError
+from app.modules.matching.service import public_text
 
 from app.modules.assessments.models import CandidateCategory, Category, Grade, Specialization
 from app.modules.candidates.models import CandidateProfile
@@ -24,6 +26,7 @@ from app.modules.employers.schemas import (
     EmployerProfileBrief,
     OfferCreate,
     OfferRead,
+    EmployerProfileUpdate,
 )
 
 
@@ -53,6 +56,10 @@ def update_profile(
 ) -> EmployerProfile:
     """Обновляет поля профиля. Передаются только изменённые поля."""
     profile = get_profile_by_user_id(session, user_id)
+    try:
+        changes = EmployerProfileUpdate.model_validate(changes).model_dump(exclude_unset=True)
+    except ValidationError as exc:
+        raise EmployerError("Проверьте название компании, email и длину полей") from exc
     for key, value in changes.items():
         setattr(profile, key, value)
     session.commit()
@@ -88,16 +95,16 @@ def _candidate_brief(session: Session, profile: CandidateProfile) -> CandidateBr
         .where(
             CandidateCategory.candidate_profile_id == profile.id,
             CandidateCategory.is_current.is_(True),
-        )
+        ).order_by(CandidateCategory.id.desc())
     ).first()
 
     if row is None:
-        return CandidateBrief(profile_id=profile.id, full_name=profile.full_name)
+        return CandidateBrief(profile_id=profile.id, full_name=public_text(profile.full_name))
 
     _, spec, grade = row
     return CandidateBrief(
         profile_id=profile.id,
-        full_name=profile.full_name,
+        full_name=public_text(profile.full_name),
         specialization_code=spec.code,
         specialization_name=spec.name,
         grade_code=grade.code,
@@ -258,7 +265,7 @@ def mark_offer_viewed(
         select(Offer).where(
             Offer.id == offer_id,
             Offer.candidate_profile_id == profile.id,
-        )
+        ).with_for_update().execution_options(populate_existing=True)
     )
     if offer is None:
         raise OfferNotFound("Приглашение не найдено")
@@ -295,7 +302,7 @@ def respond_to_offer(
         select(Offer).where(
             Offer.id == offer_id,
             Offer.candidate_profile_id == profile.id,
-        )
+        ).with_for_update().execution_options(populate_existing=True)
     )
     if offer is None:
         raise OfferNotFound("Приглашение не найдено")

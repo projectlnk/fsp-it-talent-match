@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Тест: {{ spec.name }} / {{ grade.name }}</h1>
-<p class="muted">Вопрос {{ answered_count + 1 }} из {{ total }}</p>
+<div class="question-meta"><span>Вопрос {{ answered_count + 1 }} из {{ total }}</span><span>Ответы сохраняются</span></div><div class="progress-track" role="progressbar" aria-label="Прогресс теста" aria-valuenow="{{ answered_count }}" aria-valuemin="0" aria-valuemax="{{ total }}"><span style="width:{{ answered_count / total * 100 if total else 0 }}%"></span></div>
 
 <div class="question-box">
   <p class="question-text">{{ current.text }}</p>

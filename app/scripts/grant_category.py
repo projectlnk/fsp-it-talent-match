@@ -35,7 +35,7 @@ def grant(email: str, spec_code: str, grade_code: str, test_score: int = 85) -> 
             print(f"ERROR: user {email!r} not found", file=sys.stderr)
             sys.exit(1)
         profile = session.scalar(
-            select(CandidateProfile).where(CandidateProfile.user_id == user.id)
+            select(CandidateProfile).where(CandidateProfile.user_id == user.id).with_for_update()
         )
         if profile is None:
             print(f"ERROR: profile for {email!r} not found", file=sys.stderr)

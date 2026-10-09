@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from app.modules.candidates.models import WorkFormat
 
@@ -20,11 +20,25 @@ class CandidateSkillRead(BaseModel):
 
 
 class CandidateSkillCreate(BaseModel):
+    @field_validator('skill', mode="before")
+    @classmethod
+    def _required_value(cls, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("Поле не может быть пустым")
+        return value.strip() if isinstance(value, str) else value
+
     skill: str = Field(min_length=1, max_length=100)
     level: str | None = Field(default=None, max_length=50)
 
 
 class CandidateSkillUpdate(BaseModel):
+    @field_validator('skill', mode="before")
+    @classmethod
+    def _required_value(cls, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("Поле не может быть пустым")
+        return value.strip() if isinstance(value, str) else value
+
     skill: str | None = Field(default=None, min_length=1, max_length=100)
     level: str | None = Field(default=None, max_length=50)
 
@@ -45,6 +59,13 @@ class CandidateExperienceRead(BaseModel):
 
 
 class CandidateExperienceCreate(BaseModel):
+    @field_validator('company_name', 'position', mode="before")
+    @classmethod
+    def _required_value(cls, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("Поле не может быть пустым")
+        return value.strip() if isinstance(value, str) else value
+
     company_name: str = Field(min_length=1, max_length=255)
     position: str = Field(min_length=1, max_length=255)
     started_at: date | None = None
@@ -60,6 +81,13 @@ class CandidateExperienceCreate(BaseModel):
 
 
 class CandidateExperienceUpdate(BaseModel):
+    @field_validator('company_name', 'position', 'is_current', mode="before")
+    @classmethod
+    def _required_value(cls, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("Поле не может быть пустым")
+        return value.strip() if isinstance(value, str) else value
+
     company_name: str | None = Field(default=None, min_length=1, max_length=255)
     position: str | None = Field(default=None, min_length=1, max_length=255)
     started_at: date | None = None
@@ -92,6 +120,13 @@ class CandidateProfileRead(BaseModel):
 
 
 class CandidateProfileUpdate(BaseModel):
+    @field_validator('full_name', mode="before")
+    @classmethod
+    def _required_value(cls, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("Поле не может быть пустым")
+        return value.strip() if isinstance(value, str) else value
+
     full_name: str | None = Field(default=None, min_length=1, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     location: str | None = Field(default=None, max_length=255)
@@ -164,3 +199,17 @@ class FspImportResult(BaseModel):
 
     created: int
     updated: int
+
+class FspAchievementImport(BaseModel):
+    """Validate the demo registry contract before any database changes."""
+    model_config = ConfigDict(str_strip_whitespace=True)
+    id: str = Field(min_length=1, max_length=255)
+    participant_id: str = Field(min_length=1, max_length=255)
+    title: str = Field(min_length=1, max_length=255)
+    discipline_code: str | None = Field(None, max_length=100)
+    competition_name: str | None = Field(None, max_length=255)
+    competition_date: date | None = None
+    place: int | None = None
+    rank: str | None = Field(None, max_length=100)
+    team_name: str | None = Field(None, max_length=255)
+    is_team: bool = False

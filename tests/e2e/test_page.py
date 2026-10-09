@@ -11,10 +11,11 @@ def test_page_and_local_assets(page, app_base_url):
     page.on("response", lambda response: responses.update({response.url: response.status}))
     base = app_base_url.rstrip("/")
     page.goto(base)
-    expect(page.get_by_role("heading", name="Минимальный проект")).to_be_visible()
+    expect(page.get_by_role("heading", name="Талант виден в деле.")).to_be_visible()
     expect(page.locator("#js-status")).to_have_text("JavaScript работает")
     assert page.evaluate("typeof htmx") == "object"
-    assert page.locator("body").evaluate("el => getComputedStyle(el).backgroundColor") == "rgb(245, 247, 251)"
+    assert page.locator("body").evaluate("el => getComputedStyle(el).backgroundColor") == "rgb(250, 250, 250)"
+    page.locator(".diagnostics summary").click()
     page.get_by_role("button", name="Проверить приложение").click()
     expect(page.locator("#health-result")).to_contain_text('"status":"ok"')
     for asset in ("css/main.css", "js/main.js", "vendor/htmx.min.js"):

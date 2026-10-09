@@ -4,6 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
+from app.modules.auth.schemas import UserRegister
 
 from app.db.session import get_session
 from app.modules.auth import service
@@ -16,7 +18,8 @@ router = APIRouter(prefix="/auth", tags=["auth-web"], include_in_schema=False)
 
 def _safe_next(value: str | None) -> str:
     """Защита от open redirect: разрешаем только относительные пути."""
-    if not value or not value.startswith("/") or value.startswith("//"):
+    if (not value or not value.startswith("/") or value.startswith("//")
+            or "\\" in value or any(ord(char) < 32 for char in value)):
         return "/"
     return value
 
@@ -45,24 +48,15 @@ def register_submit(
     session: Session = Depends(get_session),
 ):
     error: str | None = None
-    role_enum: UserRole | None = None
     try:
-        role_enum = UserRole(role)
-    except ValueError:
-        error = "Некорректная роль"
-
-    if error is None and role_enum is not None:
-        try:
-            service.register_user(
-                session,
-                email=email,
-                password=password,
-                role=role_enum,
-                full_name=full_name or None,
-            )
-            return RedirectResponse("/auth/check-email", status_code=status.HTTP_303_SEE_OTHER)
-        except service.EmailAlreadyExists:
-            error = "Пользователь с таким email уже зарегистрирован"
+        payload = UserRegister(email=email, password=password, role=role,
+                               full_name=full_name or None)
+        service.register_user(session, **payload.model_dump())
+        return RedirectResponse("/auth/check-email", status_code=status.HTTP_303_SEE_OTHER)
+    except ValidationError:
+        error = "Проверьте email, роль, имя и пароль (от 8 до 128 символов)"
+    except service.EmailAlreadyExists:
+        error = "Пользователь с таким email уже зарегистрирован"
 
     return templates.TemplateResponse(
         request=request,

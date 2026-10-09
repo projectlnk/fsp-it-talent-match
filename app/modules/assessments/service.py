@@ -67,6 +67,9 @@ class AttemptAlreadyCompleted(AssessmentError):
 class ActiveAttemptExists(AssessmentError):
     """Уже есть активная попытка по этой категории."""
 
+class InvalidAnswer(AssessmentError):
+    """Ответ не соответствует типу вопроса или предложенным вариантам."""
+
 class AnswerNotFound(AssessmentError):
     """Ответ не найден."""
 
@@ -80,10 +83,9 @@ class AttemptBlocked(AssessmentError):
 # --- Вспомогательные -------------------------------------------------------
 
 
-def _get_profile(session: Session, user_id: int) -> CandidateProfile:
-    profile = session.scalar(
-        select(CandidateProfile).where(CandidateProfile.user_id == user_id)
-    )
+def _get_profile(session: Session, user_id: int, *, lock: bool = False) -> CandidateProfile:
+    query = select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+    profile = session.scalar(query.with_for_update() if lock else query)
     if profile is None:
         raise ProfileNotFound()
     return profile
@@ -119,7 +121,7 @@ def start_attempt(
     и грейду — возвращает её же, чтобы нельзя было пересоздавать попытку
     и получать новые вопросы.
     """
-    profile = _get_profile(session, user_id)
+    profile = _get_profile(session, user_id, lock=True)
     spec = _get_specialization(session, specialization_code)
     grade = _get_grade(session, grade_code)
 
@@ -259,7 +261,7 @@ def submit_answer(
     Проверка происходит здесь, потому что правильный ответ лежит в снапшоте
     вопроса. Наружу `is_correct` не отдаётся, пока попытка не завершена.
     """
-    profile = _get_profile(session, user_id)
+    profile = _get_profile(session, user_id, lock=True)
     answer = session.scalar(
         select(TestAnswer)
         .join(TestAttempt, TestAttempt.id == TestAnswer.test_attempt_id)
@@ -277,6 +279,18 @@ def submit_answer(
         raise AttemptAlreadyCompleted()
 
     snapshot = answer.question_snapshot or {}
+    options = snapshot.get("options", [])
+    if snapshot.get("type", "single_choice") == "multiple_choice":
+        values = answer_payload.get("values")
+        valid = (set(answer_payload) == {"values"} and isinstance(values, list)
+                 and all(isinstance(value, str) and value in options for value in values)
+                 and len(values) == len(set(values)))
+    elif snapshot.get("type", "single_choice") == "single_choice":
+        valid = set(answer_payload) == {"value"} and answer_payload.get("value") in options
+    else:
+        valid = set(answer_payload) == {"value"} and isinstance(answer_payload.get("value"), str)
+    if not valid:
+        raise InvalidAnswer("Выберите ответ из предложенных вариантов")
     answer.answer = answer_payload
     answer.is_correct = is_correct(snapshot, answer_payload)
     answer.answered_at = datetime.now(UTC)
@@ -317,7 +331,7 @@ def finish_attempt(
 
     Возвращает обновлённую попытку.
     """
-    profile = _get_profile(session, user_id)
+    profile = _get_profile(session, user_id, lock=True)
     attempt = session.scalar(
         select(TestAttempt)
         .where(
@@ -490,8 +504,11 @@ def check_can_start_attempt(
     # 1. Общий кулдаун на смену грейда
     cooldown = _get_cooldown(session, profile.id)
     if cooldown is not None and now < cooldown.next_allowed_at:
-        current = current_category(session, user_id=user_id)
-        if current is not None and current.status == CategoryStatus.CONFIRMED:
+        current = session.scalar(select(CandidateCategory).where(
+            CandidateCategory.candidate_profile_id == profile.id,
+            CandidateCategory.status == CategoryStatus.CONFIRMED,
+        ).order_by(CandidateCategory.confirmed_at.desc().nullslast(), CandidateCategory.id.desc()))
+        if current is not None:
             current_cat = session.get(Category, current.category_id)
             if current_cat is not None and current_cat.grade_id != target_grade.id:
                 days_left = (cooldown.next_allowed_at - now).days

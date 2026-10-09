@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Результат тестирования</h1>
 
 <div class="alert {% if attempt.passed %}alert-success{% else %}alert-error{% endif %}">
@@ -10,12 +10,12 @@
     {% if state.score is not none and state.score >= 40 %}
       Вы можете попробовать пройти тест на грейд ниже.
     {% else %}
-      Вы можете попробовать снова — попытка не сгорает.
+      Повторное прохождение доступно с учётом лимита попыток.
     {% endif %}
   {% endif %}
 </div>
 
-<p>Счёт: <strong>{{ state.score }}%</strong> (взвешенный по сложности)</p>
+<section class="card"><span class="stat-label">Результат тестирования</span><div class="result-score">{{ state.score }}%</div><p class="muted">Взвешенный по сложности счёт</p></section>
 
 {% if current %}
   <p>Текущая категория:

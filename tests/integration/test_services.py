@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import os
 import httpx
 import pytest
@@ -30,7 +31,9 @@ def test_integration_clients():
             achievements = await FspRegistryClient(client).get_achievements("demo-1")
             assert len(achievements) >= 2
             assert all(a["participant_id"] == "demo-1" for a in achievements)
-    asyncio.run(run())
+    # Playwright may keep an event loop running on the pytest main thread.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(asyncio.run, run()).result(timeout=20)
 
 
 def test_mailpit():

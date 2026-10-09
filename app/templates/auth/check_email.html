@@ -1,7 +1,1 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Проверьте почту</h1>
-<p>Мы отправили письмо со ссылкой для подтверждения email.</p>
-<p>Если письма нет — проверьте папку «Спам».</p>
-<p><a href="/auth/login">Перейти ко входу</a></p>
-{% endblock %}
+{% extends "base.html" %}{% block content %}<section class="card auth-status"><span class="status-symbol" aria-hidden="true">@</span><p class="eyebrow">Следующий шаг / Email</p><h1>Проверьте почту</h1><p>Мы отправили письмо со ссылкой для подтверждения email.</p><p class="muted">Если письма нет — проверьте папку «Спам».</p><a class="button" href="/auth/login">Перейти ко входу →</a></section>{% endblock %}

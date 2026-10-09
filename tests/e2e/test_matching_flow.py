@@ -15,6 +15,7 @@ import pytest
 from playwright.sync_api import expect
 
 pytestmark = [
+    pytest.mark.skipif(os.getenv("RUN_OFFER_E2E") != "1", reason="Stage 7 invitation form is not connected; set RUN_OFFER_E2E=1 only after that stage"),
     pytest.mark.e2e,
     pytest.mark.skipif(
         os.getenv("RUN_E2E") != "1",
@@ -29,10 +30,17 @@ def _email(role: str) -> str:
     return f"{PREFIX}{role}-{uuid.uuid4().hex[:10]}@example.com"
 
 
+def _test_compose():
+    project = os.getenv('TEST_COMPOSE_PROJECT', '')
+    if not project.startswith('fsp-matching-check-'):
+        raise RuntimeError('Offer E2E requires an explicit isolated TEST_COMPOSE_PROJECT')
+    return ['docker', 'compose', '-f', 'compose.test.yaml', '-p', project]
+
+
 def _run_in_container(code: str) -> str:
     """Выполняет Python-код внутри контейнера app и возвращает stdout."""
     result = subprocess.run(
-        ["docker", "compose", "exec", "-T", "app", "python", "-c", code],
+        _test_compose() + ["exec", "-T", "app", "python", "-c", code],
         capture_output=True,
         text=True,
         check=False,
@@ -100,11 +108,7 @@ def _grant_confirmed_category(
 
     # 2. Назначаем категорию через CLI-хелпер
     result = subprocess.run(
-        [
-            "docker", "compose", "exec", "-T", "app",
-            "python", "-m", "app.scripts.grant_category",
-            email, spec_code, grade_code,
-        ],
+        _test_compose() + ["exec", "-T", "app", "python", "-m", "app.scripts.grant_category", email, spec_code, grade_code],
         capture_output=True,
         text=True,
         check=False,
