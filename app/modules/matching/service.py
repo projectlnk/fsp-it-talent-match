@@ -43,6 +43,9 @@ class MatchingError(Exception):
 class InvalidFilter(MatchingError):
     """Некорректное значение фильтра."""
 
+class CandidateNotFound(MatchingError):
+    """Кандидат не найден или не имеет подтверждённой категории."""
+
 
 def _base_query(query: CandidateSearchQuery) -> Select:
     """Строит SELECT по текущим категориям с фильтрами.
@@ -229,3 +232,28 @@ def search_candidates(
         items=items,
         meta=SearchMeta(total=total, limit=query.limit, offset=query.offset),
     )
+
+def get_candidate_card(session: Session, *, profile_id: int) -> CandidateCardRead:
+    """Возвращает карточку конкретного кандидата.
+
+    Показывает только кандидатов с активной категорией. Если у профиля
+    нет текущей категории — карточка недоступна.
+    """
+    row = session.execute(
+        select(CandidateProfile, CandidateCategory, Category, Specialization, Grade)
+        .join(CandidateCategory, CandidateCategory.candidate_profile_id == CandidateProfile.id)
+        .join(Category, Category.id == CandidateCategory.category_id)
+        .join(Specialization, Specialization.id == Category.specialization_id)
+        .join(Grade, Grade.id == Category.grade_id)
+        .where(
+            CandidateProfile.id == profile_id,
+            CandidateCategory.is_current.is_(True),
+        )
+    ).first()
+
+    if row is None:
+        raise CandidateNotFound("Кандидат не найден")
+
+    profile, category_record, category, spec, grade = row
+    full_profile = _load_profiles(session, [profile.id]).get(profile.id, profile)
+    return _to_card(full_profile, category_record, spec, grade)
