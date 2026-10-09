@@ -90,3 +90,7 @@ code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 12p
 .kv { display: grid; grid-template-columns: 160px 1fr; gap: 6px 16px; margin: 0; }
 .kv dt { color: #64748b; font-size: 13px; }
 .kv dd { margin: 0; }
+.offer-list { list-style: none; padding: 0; margin: 16px 0 0; }
+.offer-item { padding: 14px 0; border-bottom: 1px solid #eef2f7; }
+.offer-item:last-child { border-bottom: none; }
+.offer-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }

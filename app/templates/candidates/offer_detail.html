@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ offer.title }}</h1>
+
+<p class="muted">
+  От <strong>{{ offer.employer.company_name }}</strong>
+  {% if offer.employer.industry %} · {{ offer.employer.industry }}{% endif %}
+</p>
+
+<p>Статус:
+  {% if offer.status == 'sent' %}<span class="badge">новое</span>
+  {% elif offer.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
+  {% elif offer.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
+  {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
+</p>
+
+<div class="alert alert-info">
+  Условия видны до ответа: работодатель уже указал зарплату и описание.
+</div>
+
+<section class="profile-section">
+  <h2>Предложение</h2>
+  <dl class="kv">
+    {% if offer.description %}<dt>Описание</dt><dd>{{ offer.description }}</dd>{% endif %}
+    <dt>Зарплата</dt>
+    <dd>
+      {{ offer.salary_from }} – {{ offer.salary_to }} {{ offer.salary_currency }}
+      ({{ 'gross' if offer.salary_gross else 'net' }})
+    </dd>
+    {% if offer.contact_method %}<dt>Способ связи</dt><dd>{{ offer.contact_method }}</dd>{% endif %}
+    <dt>Отправлено</dt><dd>{{ offer.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+  </dl>
+</section>
+
+{% if offer.status in ('sent', 'viewed') %}
+  <section class="profile-section">
+    <h2>Ответ</h2>
+    <p class="muted small">
+      При принятии ваши контакты (email и телефон из профиля) станут видны работодателю.
+      При отклонении они не раскрываются.
+    </p>
+    <div class="form form-inline">
+      <form method="post" action="/candidate/offers/{{ offer.id }}/respond">
+        <input type="hidden" name="decision" value="accepted">
+        <button type="submit" class="btn">Принять приглашение</button>
+      </form>
+      <form method="post" action="/candidate/offers/{{ offer.id }}/respond">
+        <input type="hidden" name="decision" value="rejected">
+        <button type="submit" class="linklike">Отклонить</button>
+      </form>
+    </div>
+  </section>
+{% elif offer.status == 'accepted' %}
+  <div class="alert alert-success">
+    Вы приняли приглашение. Работодатель видит ваши контакты и может связаться.
+  </div>
+{% else %}
+  <div class="alert alert-error">
+    Вы отклонили приглашение.
+  </div>
+{% endif %}
+
+<p><a href="/candidate/offers">← Все приглашения</a></p>
+{% endblock %}
