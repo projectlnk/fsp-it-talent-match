@@ -7,12 +7,16 @@ from app.modules.auth.web import router as auth_web_router
 from app.modules.candidates.web import router as candidates_web_router
 from app.modules.employers.web import router as employers_web_router
 from app.web.templates import templates
+from app.modules.employers.web import router as employers_web_router
+from app.modules.candidates.offers_web import router as candidates_offers_web_router
 
 router = APIRouter()
 router.include_router(auth_web_router)
 router.include_router(candidates_web_router)
 router.include_router(employers_web_router)
 router.include_router(assessments_web_router)
+router.include_router(employers_web_router)
+router.include_router(candidates_offers_web_router)
 
 
 @router.get("/", include_in_schema=False)

@@ -115,4 +115,61 @@
     <button type="submit">Добавить опыт</button>
   </form>
 </section>
+<section class="profile-section">
+  <h2>ФСП ID и достижения</h2>
+  {% if fsp_error %}<div class="alert alert-error">{{ fsp_error }}</div>{% endif %}
+
+  {% if fsp_link %}
+    <p class="muted">
+      Связан с участником <strong>{{ fsp_link.registry_participant_id }}</strong>
+      с {{ fsp_link.linked_at.strftime('%d.%m.%Y') }}.
+    </p>
+
+    {% if fsp_achievements %}
+      <ul class="achievement-list">
+        {% for a in fsp_achievements %}
+          <li class="achievement-item">
+            <div class="achievement-head">
+              <strong>{{ a.title }}</strong>
+              {% if a.is_team %}
+                <span class="badge">командное</span>
+              {% endif %}
+              {% if a.is_demo %}
+                <span class="badge badge-demo">демо</span>
+              {% endif %}
+            </div>
+            <div class="muted">
+              {% if a.competition_name %}{{ a.competition_name }}{% endif %}
+              {% if a.competition_date %} · {{ a.competition_date }}{% endif %}
+              {% if a.discipline_code %} · {{ a.discipline_code }}{% endif %}
+              {% if a.place %} · {{ a.place }} место{% endif %}
+              {% if a.rank %} · {{ a.rank }}{% endif %}
+              {% if a.team_name %} · {{ a.team_name }}{% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Достижения в реестре не найдены.</p>
+    {% endif %}
+
+    <form method="post" action="/candidate/profile/fsp/unlink" class="inline">
+      <button type="submit" class="linklike">Отвязать ФСП ID</button>
+    </form>
+  {% else %}
+    <p class="muted">
+      Привяжите ФСП ID, чтобы подтянуть достижения участника соревнований.
+      Достижения не влияют на грейд, но учитываются в ранжировании у работодателя.
+    </p>
+    <form method="post" action="/candidate/profile/fsp/link" class="form form-inline">
+      <input type="text" name="participant_id" placeholder="Например, demo-1"
+             required maxlength="255" autocomplete="off">
+      <button type="submit">Привязать</button>
+    </form>
+    <p class="muted small">
+      Для демонстрации доступны ID:
+      {% for pid in fsp_demo_ids %}<code>{{ pid }}</code>{% if not loop.last %}, {% endif %}{% endfor %}.
+    </p>
+  {% endif %}
+</section>
 {% endblock %}

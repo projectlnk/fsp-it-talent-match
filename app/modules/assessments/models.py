@@ -146,6 +146,7 @@ class CandidateCategory(Base):
         Enum(CategoryStatus, name="category_status"), default=CategoryStatus.PENDING
     )
     is_current: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    test_score: Mapped[int | None] = mapped_column(Integer, nullable=True)   # ← добавили
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

@@ -10,13 +10,16 @@
 <body>
 <header class="topbar">
   <a class="brand" href="/">FSP IT Talent Match</a>
-    <nav class="topnav">
+  <nav class="topnav">
     {% if user %}
-            {% if user.role.value == 'candidate' %}
+      {% if user.role.value == 'candidate' %}
         <a href="/candidate/profile">Мой профиль</a>
         <a href="/assessments">Мои тесты</a>
+        <a href="/candidate/offers">Мои приглашения</a>
       {% elif user.role.value == 'employer' %}
         <a href="/employer/profile">Профиль компании</a>
+        <a href="/employer/search">Поиск кандидатов</a>
+        <a href="/employer/offers">Мои приглашения</a>
       {% endif %}
       <span class="muted">{{ user.email }}</span>
       <form method="post" action="/auth/logout" class="inline">

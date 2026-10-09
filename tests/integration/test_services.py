@@ -27,7 +27,9 @@ def test_integration_clients():
     async def run():
         async with httpx.AsyncClient(base_url=os.getenv("FSP_BASE_URL", "http://localhost:8001"), timeout=5) as client:
             assert (await FspIdentityClient(client).get_profile("demo-1"))["id"] == "demo-1"
-            assert len(await FspRegistryClient(client).get_achievements("demo-1")) == 1
+            achievements = await FspRegistryClient(client).get_achievements("demo-1")
+            assert len(achievements) >= 2
+            assert all(a["participant_id"] == "demo-1" for a in achievements)
     asyncio.run(run())
 
 

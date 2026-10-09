@@ -1,1 +1,74 @@
-[{"id":"achievement-1","participant_id":"demo-1","title":"Тестовое достижение","year":2025}]
+[
+  {
+    "id": "ach-1-1",
+    "participant_id": "demo-1",
+    "title": "1 место в личном зачёте",
+    "discipline_code": "backend",
+    "competition_name": "Чемпионат по спортивному программированию 2024",
+    "competition_date": "2024-09-15",
+    "place": 1,
+    "rank": null,
+    "team_name": null,
+    "is_team": false
+  },
+  {
+    "id": "ach-1-2",
+    "participant_id": "demo-1",
+    "title": "3 место в командном зачёте",
+    "discipline_code": "algorithms",
+    "competition_name": "Кубок Федерации 2023",
+    "competition_date": "2023-11-20",
+    "place": 3,
+    "rank": null,
+    "team_name": "Команда Альфа",
+    "is_team": true
+  },
+  {
+    "id": "ach-1-3",
+    "participant_id": "demo-1",
+    "title": "Кандидат в мастера спорта",
+    "discipline_code": "backend",
+    "competition_name": null,
+    "competition_date": "2023-06-01",
+    "place": null,
+    "rank": "КМС",
+    "team_name": null,
+    "is_team": false
+  },
+  {
+    "id": "ach-1-4",
+    "participant_id": "demo-1",
+    "title": "Участник отборочного этапа",
+    "discipline_code": "cybersecurity",
+    "competition_name": "Отбор на международный турнир 2025",
+    "competition_date": "2025-02-10",
+    "place": null,
+    "rank": null,
+    "team_name": null,
+    "is_team": false
+  },
+  {
+    "id": "ach-3-1",
+    "participant_id": "demo-3",
+    "title": "2 место в личном зачёте",
+    "discipline_code": "frontend",
+    "competition_name": "Всероссийская олимпиада 2024",
+    "competition_date": "2024-05-10",
+    "place": 2,
+    "rank": null,
+    "team_name": null,
+    "is_team": false
+  },
+  {
+    "id": "ach-3-2",
+    "participant_id": "demo-3",
+    "title": "1 разряд",
+    "discipline_code": "frontend",
+    "competition_name": null,
+    "competition_date": "2023-01-15",
+    "place": null,
+    "rank": "1 разряд",
+    "team_name": null,
+    "is_team": false
+  }
+]

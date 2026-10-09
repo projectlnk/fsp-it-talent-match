@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Входящие приглашения</h1>
+
+{% if offers %}
+  <ul class="offer-list">
+    {% for o in offers %}
+      <li class="offer-item">
+        <div class="offer-head">
+          <a href="/candidate/offers/{{ o.id }}" class="candidate-link">
+            <strong>{{ o.title }}</strong>
+          </a>
+          <span class="badge">{{ o.employer.company_name }}</span>
+          {% if o.status == 'sent' %}<span class="badge">новое</span>
+          {% elif o.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
+          {% elif o.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
+          {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
+        </div>
+        <div class="muted">
+          Зарплата: {{ o.salary_from }} – {{ o.salary_to }} {{ o.salary_currency }}
+          ({{ 'gross' if o.salary_gross else 'net' }})
+          · отправлено {{ o.created_at.strftime('%d.%m.%Y %H:%M') }}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="alert">
+    Пока нет входящих приглашений. Работодатель сможет найти вас, если
+    вы пройдёте тестирование и получите подтверждённую категорию.
+    <a href="/assessments">Перейти к тестам</a>.
+  </div>
+{% endif %}
+{% endblock %}

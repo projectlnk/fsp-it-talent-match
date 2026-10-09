@@ -109,3 +109,58 @@ class CandidateProfileUpdate(BaseModel):
         if low is not None and high is not None and low > high:
             raise ValueError("desired_salary_from не может быть больше desired_salary_to")
         return self
+
+# --- FSP ID --------------------------------------------------------------
+
+
+class FspLinkRequest(BaseModel):
+    participant_id: str = Field(min_length=1, max_length=255)
+
+
+class FspRegistryLinkRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    registry_participant_id: str
+    linked_at: datetime
+
+
+class FspAchievementRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    external_achievement_id: str
+    title: str
+    discipline_code: str | None = None
+    competition_name: str | None = None
+    competition_date: date | None = None
+    place: int | None = None
+    rank: str | None = None
+    team_name: str | None = None
+    is_team: bool
+    is_demo: bool
+    imported_at: datetime
+
+
+class FspProfileRead(BaseModel):
+    """Полное состояние связи с ФСП: связь + достижения."""
+
+    link: FspRegistryLinkRead | None
+    achievements: list[FspAchievementRead] = Field(default_factory=list)
+    is_demo: bool = True
+
+class FspParticipantRead(BaseModel):
+    """Участник реестра ФСП — для выбора в UI."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    display_name: str
+    email: str
+
+
+class FspImportResult(BaseModel):
+    """Результат импорта достижений."""
+
+    created: int
+    updated: int
