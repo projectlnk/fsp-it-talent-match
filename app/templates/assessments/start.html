@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Начать тестирование</h1>
 {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
 <p class="muted">Выберите специализацию и грейд, который хотите подтвердить. Тест содержит 10 вопросов.</p>
 
-<form method="post" action="/assessments/start" class="form">
+<section class="card"><form method="post" action="/assessments/start" class="form">
   <label>Специализация
     <select name="specialization" required>
       {% for s in specializations %}
@@ -20,6 +20,6 @@
     </select>
   </label>
   <button type="submit">Начать</button>
-</form>
+</form></section>
 <p><a href="/assessments">← Назад к списку</a></p>
 {% endblock %}

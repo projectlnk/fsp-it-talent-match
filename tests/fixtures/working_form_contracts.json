@@ -1,0 +1,262 @@
+{
+  "auth/login.html": [
+    {
+      "method": "post",
+      "action": "/auth/login",
+      "fields": [
+        {
+          "name": "next",
+          "type": "hidden",
+          "value": "{{ next }}"
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "value": "{{ email }}",
+          "required": null,
+          "maxlength": "255"
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "required": null
+        }
+      ]
+    }
+  ],
+  "auth/register.html": [
+    {
+      "method": "post",
+      "action": "/auth/register",
+      "fields": [
+        {
+          "name": "email",
+          "type": "email",
+          "value": "{{ email }}",
+          "required": null,
+          "maxlength": "255"
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "required": null,
+          "minlength": "8",
+          "maxlength": "128"
+        },
+        {
+          "name": "role",
+          "required": null
+        },
+        {
+          "name": "full_name",
+          "type": "text",
+          "value": "{{ full_name }}",
+          "maxlength": "255"
+        }
+      ]
+    }
+  ],
+  "candidates/profile.html": [
+    {
+      "method": "post",
+      "action": "/candidate/profile",
+      "fields": [
+        {
+          "name": "full_name",
+          "type": "text",
+          "value": "{{ profile.full_name }}",
+          "required": null,
+          "maxlength": "255"
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "value": "{{ profile.phone or '' }}",
+          "maxlength": "50"
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "value": "{{ profile.location or '' }}",
+          "maxlength": "255"
+        },
+        {
+          "name": "about"
+        },
+        {
+          "name": "desired_role",
+          "type": "text",
+          "value": "{{ profile.desired_role or '' }}",
+          "maxlength": "255"
+        },
+        {
+          "name": "desired_salary_from",
+          "type": "number",
+          "value": "{{ profile.desired_salary_from or '' }}",
+          "min": "0"
+        },
+        {
+          "name": "desired_salary_to",
+          "type": "number",
+          "value": "{{ profile.desired_salary_to or '' }}",
+          "min": "0"
+        },
+        {
+          "name": "work_format"
+        },
+        {
+          "name": "experience_years",
+          "type": "number",
+          "value": "{{ profile.experience_years or '' }}",
+          "min": "0",
+          "max": "80"
+        }
+      ]
+    },
+    {
+      "method": "post",
+      "action": "/candidate/profile/skills/{{ skill.id }}/delete",
+      "fields": []
+    },
+    {
+      "method": "post",
+      "action": "/candidate/profile/skills",
+      "fields": [
+        {
+          "name": "skill",
+          "type": "text",
+          "required": null,
+          "maxlength": "100"
+        },
+        {
+          "name": "level",
+          "type": "text",
+          "maxlength": "50"
+        }
+      ]
+    },
+    {
+      "method": "post",
+      "action": "/candidate/profile/experiences/{{ e.id }}/delete",
+      "fields": []
+    },
+    {
+      "method": "post",
+      "action": "/candidate/profile/experiences",
+      "fields": [
+        {
+          "name": "company_name",
+          "type": "text",
+          "required": null,
+          "maxlength": "255"
+        },
+        {
+          "name": "position",
+          "type": "text",
+          "required": null,
+          "maxlength": "255"
+        },
+        {
+          "name": "started_at",
+          "type": "date"
+        },
+        {
+          "name": "ended_at",
+          "type": "date"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "is_current",
+          "type": "checkbox",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "employers/profile.html": [
+    {
+      "method": "post",
+      "action": "/employer/profile",
+      "fields": [
+        {
+          "name": "company_name",
+          "type": "text",
+          "value": "{{ profile.company_name }}",
+          "required": null,
+          "maxlength": "255"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "industry",
+          "type": "text",
+          "value": "{{ profile.industry or '' }}",
+          "maxlength": "255"
+        },
+        {
+          "name": "website",
+          "type": "text",
+          "value": "{{ profile.website or '' }}",
+          "maxlength": "255"
+        },
+        {
+          "name": "contact_email",
+          "type": "email",
+          "value": "{{ profile.contact_email or '' }}",
+          "maxlength": "255"
+        },
+        {
+          "name": "contact_phone",
+          "type": "text",
+          "value": "{{ profile.contact_phone or '' }}",
+          "maxlength": "50"
+        }
+      ]
+    }
+  ],
+  "assessments/start.html": [
+    {
+      "method": "post",
+      "action": "/assessments/start",
+      "fields": [
+        {
+          "name": "specialization",
+          "required": null
+        },
+        {
+          "name": "grade",
+          "required": null
+        }
+      ]
+    }
+  ],
+  "assessments/attempt.html": [
+    {
+      "method": "post",
+      "action": "/assessments/attempt/{{ attempt.id }}/answer",
+      "fields": [
+        {
+          "name": "answer_id",
+          "type": "hidden",
+          "value": "{{ current.answer_id }}"
+        },
+        {
+          "name": "value",
+          "type": "radio",
+          "value": "{{ opt }}",
+          "required": null
+        }
+      ]
+    }
+  ],
+  "assessments/finish.html": [
+    {
+      "method": "post",
+      "action": "/assessments/attempt/{{ attempt_id }}/finish",
+      "fields": []
+    }
+  ]
+}

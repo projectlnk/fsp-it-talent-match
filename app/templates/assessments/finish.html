@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Завершить тест</h1>
 <p>Вы ответили на все вопросы. Нажмите кнопку, чтобы получить результат.</p>
 
-<form method="post" action="/assessments/attempt/{{ attempt_id }}/finish">
+<section class="card"><form method="post" action="/assessments/attempt/{{ attempt_id }}/finish">
   <button type="submit" class="btn">Завершить и посмотреть результат</button>
-</form>
+</form></section>
 {% endblock %}

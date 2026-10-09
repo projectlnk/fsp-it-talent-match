@@ -1,6 +1,1 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Подтверждение email</h1>
-<div class="alert {% if success %}alert-success{% else %}alert-error{% endif %}">{{ message }}</div>
-<p><a href="/auth/login">Перейти ко входу</a></p>
-{% endblock %}
+{% extends "base.html" %}{% block content %}<section class="card auth-status"><span class="status-symbol" aria-hidden="true">{{ '✓' if success else '!' }}</span><p class="eyebrow">Аккаунт / Email</p><h1>Подтверждение email</h1><div class="alert {{ 'alert-success' if success else 'alert-error' }}" role="{{ 'status' if success else 'alert' }}">{{ message }}</div><a class="button" href="/auth/login">Перейти ко входу →</a></section>{% endblock %}

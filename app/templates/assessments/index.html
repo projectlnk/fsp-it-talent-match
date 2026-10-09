@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Мои тесты</h1>
 
 {% if current %}
@@ -29,7 +29,7 @@
 <section class="profile-section">
   <h2>История попыток</h2>
   {% if attempts %}
-    <table class="table">
+    <div class="table-wrap" tabindex="0" aria-label="История попыток"><table class="table">
       <thead>
         <tr>
           <th>Категория</th>
@@ -44,7 +44,7 @@
         {% for a in attempts %}
           <tr>
             <td>{{ a.specialization.name }} / {{ a.grade.name }}</td>
-            <td>{{ a.status }}</td>
+            <td>{{ a.status|replace('in_progress','В процессе')|replace('completed','Завершён')|replace('abandoned','Прерван') }}</td>
             <td>{{ a.score if a.score is not none else '—' }}</td>
             <td>
               {% if a.passed is none %}—
@@ -62,7 +62,7 @@
           </tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   {% else %}
     <p class="muted">Пока нет попыток.</p>
   {% endif %}

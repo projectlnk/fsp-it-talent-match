@@ -1,0 +1,1 @@
+{% macro heading(kicker,title,text='') %}<div class="page-heading"><p class="eyebrow">{{ kicker }}</p><h1>{{ title }}</h1>{% if text %}<p class="lead">{{ text }}</p>{% endif %}</div>{% endmacro %}{% macro tag(text,kind='') %}<span class="tag {{ kind }}">{{ text }}</span>{% endmacro %}
