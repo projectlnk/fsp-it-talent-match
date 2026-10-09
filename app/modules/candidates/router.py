@@ -24,6 +24,9 @@ from app.modules.candidates.schemas import (
 
 from app.modules.candidates.fsp_router import router as fsp_router
 
+from fastapi import Response
+from app.modules.candidates import resume as resume_service
+
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
 router.include_router(fsp_router)
@@ -182,3 +185,46 @@ def delete_experience(
         )
     except service.CandidateError as exc:
         raise _handle_service_error(exc) from exc
+
+# --- PDF-резюме -----------------------------------------------------------
+
+
+@router.get(
+    "/me/resume.pdf",
+    summary="Скачать PDF-резюме",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {"application/pdf": {}},
+            "description": "PDF-резюме кандидата",
+        },
+    },
+)
+def download_resume(
+    user: User = Depends(_CANDIDATE_ONLY),
+    session: Session = Depends(get_session),
+):
+    """Генерирует и возвращает PDF-резюме текущего кандидата.
+
+    Доступно только владельцу. Чужие резюме недоступны — ручка работает
+    от текущего пользователя.
+    """
+    try:
+        pdf_bytes = resume_service.generate_resume_pdf(session, user_id=user.id)
+    except resume_service.ProfileNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except resume_service.ResumeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
+
+    filename = f"resume_{user.id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
