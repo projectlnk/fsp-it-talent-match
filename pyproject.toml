@@ -15,6 +15,7 @@ dependencies = [
     "pyjwt>=2.9,<3",
     "python-multipart>=0.0.18,<1",
     "email-validator>=2.2,<3",
+    "weasyprint>=65,<66",
 ]
 [dependency-groups]
 dev = ["pytest>=8,<10", "pytest-playwright>=0.7,<1", "pyyaml>=6,<7"]

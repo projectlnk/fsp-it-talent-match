@@ -18,6 +18,9 @@ from app.modules.candidates import service
 from app.modules.candidates.models import WorkFormat
 from app.web.templates import templates
 
+from fastapi import Response
+from app.modules.candidates import resume as resume_service
+
 router = APIRouter(prefix="/candidate", tags=["candidates-web"], include_in_schema=False)
 
 _CANDIDATE_ONLY = require_role(UserRole.CANDIDATE)
@@ -274,3 +277,33 @@ def fsp_unlink(
     except service.CandidateError:
         pass
     return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+
+# --- PDF-резюме -----------------------------------------------------------
+
+
+@router.get("/profile/resume.pdf", response_class=Response)
+def download_resume(
+    user: User = Depends(_CANDIDATE_ONLY),
+    session: Session = Depends(get_session),
+):
+    """Скачивание PDF-резюме текущего кандидата.
+
+    Доступно только владельцу через httpOnly cookie. Чужие резюме
+    недоступны: ручка работает от текущего пользователя.
+    """
+    try:
+        pdf_bytes = resume_service.generate_resume_pdf(session, user_id=user.id)
+    except resume_service.ResumeError as exc:
+        # Если PDF не собрался — возвращаем на профиль с понятной ошибкой
+        return RedirectResponse(
+            "/candidate/profile",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="resume.pdf"',
+        },
+    )

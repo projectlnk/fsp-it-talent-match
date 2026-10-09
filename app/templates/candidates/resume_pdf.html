@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Резюме — {{ profile.full_name }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.45;
+    color: #172234;
+    margin: 0;
+  }
+
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 8pt;
+    color: #64748b;
+    margin: 0 0 6pt;
+  }
+
+  h1 {
+    font-size: 20pt;
+    margin: 0 0 4pt;
+    color: #0f172a;
+  }
+
+  h2 {
+    font-size: 12pt;
+    margin: 16pt 0 6pt;
+    padding-bottom: 3pt;
+    border-bottom: 1px solid #cbd5e1;
+    color: #0f172a;
+  }
+
+  .subtitle {
+    font-size: 10pt;
+    color: #334155;
+    margin: 0 0 2pt;
+  }
+
+  .muted {
+    color: #64748b;
+    font-size: 9pt;
+  }
+
+  section { margin-top: 12pt; }
+
+  .skills-line { margin: 0; }
+
+  .experience { margin-bottom: 10pt; }
+  .experience-position { font-weight: bold; margin: 0; }
+  .experience-company { color: #334155; margin: 0 0 2pt; }
+  .experience-dates { font-size: 9pt; color: #64748b; margin: 0 0 3pt; }
+  .experience-description { margin: 0; }
+
+  .achievement { margin-bottom: 6pt; }
+  .achievement-title { font-weight: bold; margin: 0; }
+
+  .badge {
+    display: inline-block;
+    padding: 1pt 6pt;
+    border-radius: 8pt;
+    font-size: 8pt;
+    background: #eef2ff;
+    color: #3730a3;
+    margin-left: 4pt;
+  }
+  .badge-demo { background: #fef3c7; color: #92400e; }
+
+  .test-result {
+    background: #f8fafc;
+    padding: 8pt 10pt;
+    border-radius: 6pt;
+    margin: 0;
+  }
+
+  .contacts p { margin: 2pt 0; }
+
+  .footer {
+    margin-top: 20pt;
+    padding-top: 8pt;
+    border-top: 1px solid #e2e8f0;
+    font-size: 8pt;
+    color: #94a3b8;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<p class="eyebrow">FSP IT Talent Match / Резюме кандидата</p>
+
+<h1>{{ profile.full_name }}</h1>
+
+<p class="subtitle">
+  {% if category %}
+    {{ category.specialization.name }} · {{ category.grade.name }}
+  {% endif %}
+  {% if profile.location %} · {{ profile.location }}{% endif %}
+  {% if work_format_label %} · {{ work_format_label }}{% endif %}
+</p>
+
+<p class="subtitle">
+  {% if profile.experience_years is not none %}Опыт: {{ profile.experience_years }} лет{% endif %}
+  {% if profile.desired_salary_from or profile.desired_salary_to %}
+    {% if profile.experience_years is not none %} · {% endif %}
+    Желаемый доход: {{ profile.desired_salary_from or '—' }}–{{ profile.desired_salary_to or '—' }} ₽
+  {% endif %}
+</p>
+
+{% if profile.about %}
+<section>
+  <h2>О себе</h2>
+  <p>{{ profile.about }}</p>
+</section>
+{% endif %}
+
+{% if profile.skills %}
+<section>
+  <h2>Навыки</h2>
+  <p class="skills-line">
+    {% for s in profile.skills %}{{ s.skill }}{% if s.level %} ({{ s.level }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+  </p>
+</section>
+{% endif %}
+
+{% if profile.experiences %}
+<section>
+  <h2>Опыт работы</h2>
+  {% for e in profile.experiences %}
+    <div class="experience">
+      <p class="experience-position">{{ e.position }}</p>
+      <p class="experience-company">{{ e.company_name }}</p>
+      <p class="experience-dates">
+        {% if e.started_at %}{{ e.started_at.strftime('%m.%Y') }}{% endif %}
+        {% if e.ended_at %} — {{ e.ended_at.strftime('%m.%Y') }}
+        {% elif e.is_current %} — по настоящее время{% endif %}
+      </p>
+      {% if e.description %}
+        <p class="experience-description">{{ e.description }}</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if category and category.test_score is not none %}
+<section>
+  <h2>Результат тестирования</h2>
+  <p class="test-result">
+    {{ category.specialization.name }} / {{ category.grade.name }} ·
+    <strong>{{ category.test_score }}%</strong>
+    {% if category.confirmed_at %}
+      · {{ category.confirmed_at.strftime('%d.%m.%Y') }}
+    {% endif %}
+  </p>
+  <p class="muted">
+    Грейд присвоен по результату теста, подтверждён платформой.
+  </p>
+</section>
+{% endif %}
+
+{% if profile.fsp_achievements %}
+<section>
+  <h2>Достижения ФСП</h2>
+  {% for a in profile.fsp_achievements %}
+    <div class="achievement">
+      <p class="achievement-title">
+        {{ a.title }}
+        {% if a.is_team %}<span class="badge">командное</span>{% endif %}
+        {% if a.is_demo %}<span class="badge badge-demo">демо</span>{% endif %}
+      </p>
+      <p class="muted">
+        {% if a.competition_name %}{{ a.competition_name }}{% endif %}
+        {% if a.place %} · {{ a.place }} место{% endif %}
+        {% if a.rank %} · {{ a.rank }}{% endif %}
+        {% if a.competition_date %} · {{ a.competition_date.strftime('%m.%Y') }}{% endif %}
+      </p>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section>
+  <h2>Контакты</h2>
+  <div class="contacts">
+    {% if user_email %}<p>Email: {{ user_email }}</p>{% endif %}
+    {% if profile.phone %}<p>Телефон: {{ profile.phone }}</p>{% endif %}
+    {% if not user_email and not profile.phone %}
+      <p class="muted">Контакты не заполнены в профиле.</p>
+    {% endif %}
+  </div>
+</section>
+
+<p class="footer">
+  Документ сформирован автоматически на платформе FSP IT Talent Match
+  {% if generated_at %}· {{ generated_at.strftime('%d.%m.%Y') }}{% endif %}
+</p>
+
+</body>
+</html>
