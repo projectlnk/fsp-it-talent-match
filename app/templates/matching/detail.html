@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% block title %}{{ card.full_name }} · FSP IT Talent Match{% endblock %}{% block content %}
 <a class="text-link" href="/employer/search">← Поиск кандидатов</a><div class="page-heading"><p class="eyebrow">Профиль кандидата</p><h1>{{ card.full_name }}</h1><p>{{ card.desired_role or 'ИТ-специалист' }}{% if card.location %} · {{ card.location }}{% endif %}</p></div>
-{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
 <div class="profile-layout"><div class="stack"><section class="card"><h2>Подтверждённая категория</h2><span class="tag tag-purple">{{ card.specialization_name }} / {{ card.grade_name }}</span><p>{% if card.test_score is not none %}Результат подтверждения: {{ card.test_score }}%.{% else %}Баллы подтверждения не сохранены.{% endif %}{% if card.confirmed_at %} Подтверждена {{ card.confirmed_at.strftime('%d.%m.%Y') }}.{% endif %}</p>
 <h3>Навыки</h3><div class="tag-row">{% for s in card.skills %}<span class="tag">{{ s.skill }}{% if s.level %} · {{ s.level }}{% endif %}</span>{% else %}<p class="muted">Навыки пока не указаны.</p>{% endfor %}</div>
 {% if card.about %}<h3>О себе</h3><p class="matching-text">{{ card.about }}</p>{% endif %}
@@ -9,4 +9,15 @@
 <section class="card"><h2>Опыт работы</h2>{% for e in card.experiences %}<article class="experience-item"><h3>{{ e.position }} · {{ e.company_name }}</h3><p class="muted">{{ e.started_at or 'Дата не указана' }} — {{ 'По настоящее время' if e.is_current else (e.ended_at or 'Дата не указана') }}</p>{% if e.description %}<p class="matching-text">{{ e.description }}</p>{% endif %}</article>{% else %}<p class="muted">Опыт пока не указан.</p>{% endfor %}</section>
 <section class="card"><h2>Последние завершённые тесты</h2><div class="table-wrap"><table><thead><tr><th>Категория</th><th>Результат</th><th>Дата</th></tr></thead><tbody>{% for r in card.results %}<tr><td>{{ r.specialization_name }} / {{ r.grade_name }}</td><td>{{ r.score if r.score is not none else '—' }}% · {{ 'Подтверждён' if r.passed else 'Не подтверждён' }}</td><td>{{ r.finished_at.strftime('%d.%m.%Y') if r.finished_at else '—' }}</td></tr>{% else %}<tr><td colspan="3">История результатов отсутствует.</td></tr>{% endfor %}</tbody></table></div><p class="muted">До 20 последних результатов. Ответы и вопросы не публикуются.</p></section>
 <section class="card"><h2>Достижения ФСП</h2>{% for a in card.fsp_achievements %}<article class="achievement-item"><h3>{{ a.title }}</h3>{% if a.is_demo %}<span class="tag">Демонстрационное достижение</span>{% endif %}<p>{{ a.competition_name or '' }}{% if a.competition_date %} · {{ a.competition_date }}{% endif %}{% if a.place %} · {{ a.place }} место{% endif %}</p></article>{% else %}<p>Истории ФСП нет. Кандидат подтвердил категорию тестированием.</p>{% endfor %}</section></div>
-<aside class="stack"><section class="card"><h2>Приглашение в команду</h2><p>Контакты скрыты до принятия приглашения или самостоятельного отклика.</p><button type="button" disabled title="Подключение на этапе 7">Пригласить</button><p class="muted">Отправка с этой страницы будет подключена на этапе 7.</p></section></aside></div>{% endblock %}
+<aside class="stack"><section class="card"><h2>Приглашение в команду</h2><p>Контакты кандидата откроются вам после принятия приглашения.</p>
+{% set f = offer_form | default({}) %}
+<form method="post" action="/employer/offers" class="form" id="offer-form">
+  <input type="hidden" name="candidate_profile_id" value="{{ card.profile_id }}">
+  <label>Заголовок<input type="text" name="title" required maxlength="255" value="{{ f.get('title', 'Приглашение для ' ~ card.full_name) }}"></label>
+  <label>Описание предложения<textarea name="description" rows="4" placeholder="Проект, команда и задачи">{{ f.get('description', '') }}</textarea></label>
+  <label>Зарплата от, ₽<input type="number" name="salary_from" required min="0" step="1" value="{{ f.get('salary_from', '') }}"></label>
+  <label>Зарплата до, ₽<input type="number" name="salary_to" required min="0" step="1" value="{{ f.get('salary_to', '') }}"></label>
+  <label class="checkbox"><input type="checkbox" name="salary_gross" value="1" {% if f.get('salary_gross', true) %}checked{% endif %}>До вычета НДФЛ</label>
+  <label>Способ связи<input type="text" name="contact_method" maxlength="255" placeholder="Email или Telegram работодателя" value="{{ f.get('contact_method', '') }}"></label>
+  <button type="submit">Пригласить</button>
+</form></section></aside></div>{% endblock %}

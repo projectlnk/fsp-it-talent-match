@@ -89,7 +89,8 @@ def reference_filters(session):
 
 
 def set_publication(session, user_id, is_searchable):
-    profile = session.scalar(select(CandidateProfile).where(CandidateProfile.user_id == user_id))
+    profile = session.scalar(select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+                             .with_for_update().execution_options(populate_existing=True))
     if profile is None:
         raise CandidateNotFound('Профиль не найден')
     profile.is_searchable = is_searchable

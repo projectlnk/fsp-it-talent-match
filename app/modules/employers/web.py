@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 
 from app.db.session import get_session
 from app.modules.auth.dependencies import require_role
@@ -89,10 +90,10 @@ def profile_update(
 def offer_create(
     request: Request,
     candidate_profile_id: int = Form(...),
-    title: str = Form(...),
+    title: str = Form(""),
     description: str = Form(""),
-    salary_from: int = Form(...),
-    salary_to: int = Form(...),
+    salary_from: str = Form(""),
+    salary_to: str = Form(""),
     salary_gross: str = Form(""),
     contact_method: str = Form(""),
     user: User = Depends(_EMPLOYER_ONLY),
@@ -102,6 +103,8 @@ def offer_create(
 
     При неудаче возвращает на карточку с сообщением об ошибке.
     """
+    form = dict(title=title, description=description, salary_from=salary_from,
+                salary_to=salary_to, salary_gross=bool(salary_gross), contact_method=contact_method)
     try:
         service.create_offer(
             session,
@@ -117,6 +120,14 @@ def offer_create(
             ),
         )
     except (OfferError, ValueError) as exc:
+        error = str(exc)
+        if isinstance(exc, ValidationError):
+            messages = {"title": "Укажите название приглашения (до 255 символов).",
+                        "salary_from": "Зарплата от: укажите целое неотрицательное число.",
+                        "salary_to": "Зарплата до: укажите целое неотрицательное число.",
+                        "contact_method": "Способ связи: не более 255 символов."}
+            error = " ".join(dict.fromkeys(messages.get(e['loc'][0] if e['loc'] else '',
+                "Зарплата от не должна превышать зарплату до.") for e in exc.errors()))
         try:
             card = matching_service.get_candidate_card(
                 session, profile_id=candidate_profile_id
@@ -129,7 +140,7 @@ def offer_create(
             request,
             user,
             "matching/detail.html",
-            {"card": card, "error": str(exc)},
+            {"card": card, "error": error, "offer_form": form},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 

@@ -165,8 +165,15 @@ def create_offer(
     Приглашение не привязано к вакансии. Зарплата обязательна.
     """
     employer = get_profile_by_user_id(session, employer_user_id)
-    candidate = session.get(CandidateProfile, payload.candidate_profile_id)
-    if candidate is None:
+    candidate = session.scalar(
+        select(CandidateProfile)
+        .where(CandidateProfile.id == payload.candidate_profile_id)
+        .with_for_update().execution_options(populate_existing=True)
+    )
+    from app.modules.auth.models import User, UserRole
+    candidate_user = session.get(User, candidate.user_id) if candidate else None
+    if (candidate is None or not candidate.is_searchable or candidate_user is None
+            or not candidate_user.is_active or candidate_user.role != UserRole.CANDIDATE):
         raise CandidateNotFound("Кандидат не найден")
 
     offer = Offer(
@@ -308,6 +315,8 @@ def respond_to_offer(
         raise OfferNotFound("Приглашение не найдено")
 
     if offer.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED}:
+        if offer.status.value == decision:
+            return _to_offer_read(session, offer, reveal_contacts=False)
         raise InvalidStatusTransition("Приглашение уже обработано")
 
     offer.status = OfferStatus.ACCEPTED if decision == "accepted" else OfferStatus.REJECTED

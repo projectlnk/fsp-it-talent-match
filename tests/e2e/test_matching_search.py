@@ -82,7 +82,7 @@ def test_real_docker_search_publication_and_contacts(page,app_base_url,actors,wi
     expect(page.locator(f'#matching-results a[href="/employer/candidates/{pid}"]').first).to_be_visible()
     page.locator(f'#matching-results a[href="/employer/candidates/{pid}"]').first.click()
     expect(page.locator('main')).to_contain_text('Истории ФСП нет')
-    expect(page.get_by_role('button',name='Пригласить',exact=True)).to_be_disabled()
+    expect(page.get_by_role('button',name='Пригласить',exact=True)).to_be_enabled()
     content=page.content()
     for secret in [actors['emails']['candidate'],'+7 999 222-11-00','secret-contact@example.invalid','secret_handle']: assert secret not in content
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
