@@ -1,36 +1,46 @@
-"""Отправка писем через SMTP.
-
-В локальной разработке используется Mailpit — он принимает любые письма
-без аутентификации и не отправляет их наружу.
-"""
+"""SMTP sender: внешний провайдер или локальный Mailpit."""
 from __future__ import annotations
 
 import logging
 import smtplib
+import ssl
 from email.message import EmailMessage
+from email.utils import formataddr
 
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FROM = "noreply@fsp-it-talent.local"
+
+class EmailDeliveryError(Exception):
+    """SMTP-сервер не подтвердил приём письма."""
 
 
-def send_email(*, to: str, subject: str, body: str, from_addr: str = DEFAULT_FROM) -> None:
-    """Синхронно отправляет текстовое письмо через SMTP.
-
-    Ошибки SMTP логируются и не поднимаются наверх: регистрация не должна
-    падать из-за недоступного почтового сервера. Письмо можно переотправить
-    отдельной ручкой.
-    """
+def send_email(*, to: str, subject: str, body: str,
+               from_addr: str | None = None, html_body: str | None = None) -> None:
     settings = get_settings()
     msg = EmailMessage()
-    msg["From"] = from_addr
+    msg["From"] = formataddr((settings.smtp_from_name, from_addr or settings.smtp_from_email))
     msg["To"] = to
     msg["Subject"] = subject
     msg.set_content(body)
+    if html_body is not None:
+        msg.add_alternative(html_body, subtype="html")
     try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
-            smtp.send_message(msg)
-    except (OSError, smtplib.SMTPException) as exc:
-        logger.warning("Не удалось отправить письмо на %s: %s", to, exc)
+        connection = (smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port,
+                                      timeout=10, context=ssl.create_default_context())
+                      if settings.smtp_ssl else
+                      smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10))
+        with connection as smtp:
+            if settings.smtp_starttls:
+                smtp.ehlo()
+                smtp.starttls(context=ssl.create_default_context())
+                smtp.ehlo()
+            if settings.smtp_username:
+                smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
+            if smtp.send_message(msg):
+                raise EmailDeliveryError("Письмо не принято почтовым сервером")
+    except (OSError, smtplib.SMTPException, EmailDeliveryError) as exc:
+        # Не записываем ответ сервера: он может содержать credentials или адреса.
+        logger.warning("Ошибка отправки email: %s", type(exc).__name__)
+        raise EmailDeliveryError("Не удалось отправить письмо подтверждения") from None

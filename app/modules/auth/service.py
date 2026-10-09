@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from html import escape
+from urllib.parse import urlencode
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.email import send_email
+from app.core.email import EmailDeliveryError, send_email
 from app.modules.auth.models import EmailVerificationToken, User, UserRole
 from app.modules.auth.security import (
     create_access_token,
@@ -34,6 +36,18 @@ class InvalidCredentials(AuthError):
 
 class InvalidVerificationToken(AuthError):
     """Токен подтверждения не найден, уже использован или истёк."""
+
+
+class VerificationEmailDeliveryError(AuthError):
+    """Аккаунт и токен сохранены, но письмо не отправлено."""
+
+
+class ExpiredVerificationToken(InvalidVerificationToken):
+    pass
+
+
+class AlreadyVerifiedEmail(InvalidVerificationToken):
+    pass
 
 
 def register_user(
@@ -121,12 +135,17 @@ def verify_email(session: Session, *, token: str) -> User:
     record = session.scalar(
         select(EmailVerificationToken).where(EmailVerificationToken.token == token).with_for_update()
     )
-    if record is None or record.used_at is not None:
+    if record is None:
+        raise InvalidVerificationToken()
+    if record.used_at is not None:
+        user = session.get(User, record.user_id)
+        if user is not None and user.is_email_verified:
+            raise AlreadyVerifiedEmail()
         raise InvalidVerificationToken()
 
     now = datetime.now(UTC)
     if record.expires_at <= now:
-        raise InvalidVerificationToken()
+        raise ExpiredVerificationToken()
 
     user = session.get(User, record.user_id)
     if user is None:
@@ -167,7 +186,7 @@ def _create_verification_token(session: Session, user: User) -> str:
 def _send_verification_email(user: User, token: str) -> None:
     """Собирает и отправляет письмо с ссылкой подтверждения."""
     settings = get_settings()
-    link = f"{settings.app_base_url}/auth/verify?token={token}"
+    link = settings.app_base_url.rstrip("/") + "/auth/verify?" + urlencode({"token": token})
     body = (
         "Здравствуйте!\n\n"
         "Подтвердите email на платформе FSP IT Talent Match.\n"
@@ -175,8 +194,16 @@ def _send_verification_email(user: User, token: str) -> None:
         f"Ссылка действует {settings.email_verification_token_expire_hours} ч.\n\n"
         "Если вы не регистрировались — проигнорируйте письмо."
     )
-    send_email(
-        to=user.email,
-        subject="Подтверждение email — FSP IT Talent Match",
-        body=body,
+    html = (
+        '<html lang="ru"><body><h1>FSP IT Talent Match</h1>'
+        '<p>Здравствуйте! Подтвердите email, чтобы завершить регистрацию.</p>'
+        f'<p><a href="{escape(link, quote=True)}">Подтвердить email</a></p>'
+        f'<p>Если ссылка не открывается, скопируйте её: {escape(link)}</p>'
+        f'<p>Ссылка действует {settings.email_verification_token_expire_hours} ч.</p>'
+        '<p>Если вы не создавали аккаунт, проигнорируйте письмо.</p></body></html>'
     )
+    try:
+        send_email(to=user.email, subject="Подтверждение email — FSP IT Talent Match",
+                   body=body, html_body=html)
+    except EmailDeliveryError:
+        raise VerificationEmailDeliveryError() from None

@@ -47,6 +47,9 @@ def register(payload: UserRegister, session: Session = Depends(get_session)) -> 
             detail="Email уже зарегистрирован",
         ) from exc
 
+    except service.VerificationEmailDeliveryError:
+        raise HTTPException(status_code=503, detail="Аккаунт создан, но письмо не отправлено. Войдите и запросите письмо повторно.") from None
+
 
 @router.post("/login", response_model=TokenResponse, summary="Вход по email и паролю")
 def login(payload: UserLogin, session: Session = Depends(get_session)) -> TokenResponse:
@@ -100,7 +103,12 @@ def resend_verification(
     Доступно только аутентифицированному пользователю — чтобы нельзя было
     слать письма на чужие адреса.
     """
-    service.resend_verification_email(session, user=current_user)
+    if current_user.is_email_verified:
+        return MessageResponse(message="Email уже подтверждён")
+    try:
+        service.resend_verification_email(session, user=current_user)
+    except service.VerificationEmailDeliveryError:
+        raise HTTPException(status_code=503, detail="Письмо не отправлено. Попробуйте повторить позже.") from None
     return MessageResponse(message="Письмо отправлено повторно")
 
 
