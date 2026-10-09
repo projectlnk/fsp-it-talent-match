@@ -34,6 +34,7 @@ from app.modules.matching.schemas import (
     SearchMeta,
 )
 
+from app.modules.matching.ranking import rank_candidate
 
 class MatchingError(Exception):
     """Базовая ошибка модуля поиска."""
@@ -134,11 +135,17 @@ def _to_card(
     specialization: Specialization,
     grade: Grade,
 ) -> CandidateCardRead:
-    """Собирает карточку кандидата. Ранжирование заполняет 5.2.3."""
+    """Собирает карточку кандидата с рассчитанным рейтингом."""
     achievements = sorted(
         profile.fsp_achievements,
         key=lambda a: (a.competition_date is None, a.competition_date),
         reverse=True,
+    )
+
+    ranking = rank_candidate(
+        profile,
+        specialization_code=specialization.code,
+        test_score=category_record.test_score,
     )
 
     return CandidateCardRead(
@@ -155,9 +162,8 @@ def _to_card(
         grade_name=grade.name,
         category_status=category_record.status.value,
         test_score=category_record.test_score,
-        # Заглушки — реальный расчёт будет в 5.2.3
-        ranking_score=0.0,
-        ranking_reasons=[],
+        ranking_score=ranking.score,
+        ranking_reasons=ranking.reasons,
         skills=[
             CandidateSkillBrief.model_validate(s)
             for s in sorted(profile.skills, key=lambda x: x.skill)
@@ -172,7 +178,6 @@ def _to_card(
         fsp_has_achievements=bool(profile.fsp_achievements),
     )
 
-
 def search_candidates(
     session: Session,
     query: CandidateSearchQuery,
@@ -186,14 +191,19 @@ def search_candidates(
     total = int(session.scalar(_count_query(query)) or 0)
 
     stmt = _base_query(query)
-    # Базовая сортировка до внедрения полного ранжирования:
-    # выше те, у кого сильнее подтверждённый результат
+    # Черновая сортировка по test_score: точное ранжирование делаем
+    # в Python после загрузки профилей, потому что рейтинг зависит от
+    # достижений ФСП и релевантности дисциплин. Для больших выборок
+    # это можно вынести в SQL, но на MVP пагинация по 20 элементов
+    # сортируется в памяти мгновенно.
     stmt = stmt.order_by(
         CandidateCategory.test_score.desc().nullslast(),
-        CandidateProfile.full_name.asc(),
         CandidateProfile.id.asc(),
     )
-    stmt = stmt.limit(query.limit).offset(query.offset)
+    # Забираем с запасом, чтобы после сортировки в Python отдать
+    # стабильно заполненную страницу нужного размера
+    fetch_limit = query.limit + query.offset
+    stmt = stmt.limit(fetch_limit)
 
     rows = session.execute(stmt).all()
     if not rows:
@@ -211,6 +221,9 @@ def search_candidates(
     for profile, category_record, category, spec, grade in rows:
         full_profile = profiles.get(profile.id, profile)
         items.append(_to_card(full_profile, category_record, spec, grade))
+
+    items.sort(key=lambda c: (-c.ranking_score, c.profile_id))
+    items = items[query.offset : query.offset + query.limit]
 
     return CandidateSearchResult(
         items=items,
