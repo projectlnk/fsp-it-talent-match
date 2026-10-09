@@ -346,6 +346,7 @@ def finish_attempt(
         grade_id=attempt.target_grade_id,
         passed=attempt.passed,
         confirmed_at=attempt.finished_at if attempt.passed else None,
+        test_score=attempt.score,   # ← добавили
     )
 
     if attempt.passed:
@@ -367,6 +368,7 @@ def _apply_category(
     grade_id: int,
     passed: bool,
     confirmed_at: datetime | None,
+    test_score: int | None = None,
 ) -> CandidateCategory:
     """Создаёт новую запись CandidateCategory и снимает флаг is_current
     с предыдущей.
@@ -400,6 +402,7 @@ def _apply_category(
         category_id=category.id,
         status=CategoryStatus.CONFIRMED if passed else CategoryStatus.NOT_CONFIRMED,
         is_current=True,
+        test_score=test_score,
         confirmed_at=confirmed_at,
     )
     session.add(record)
