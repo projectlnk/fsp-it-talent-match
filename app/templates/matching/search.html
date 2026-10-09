@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Поиск кандидатов · FSP IT Talent Match{% endblock %}
+{% block content %}
+<div class="page-heading"><p class="eyebrow">Кабинет работодателя / Подбор</p><h1>Поиск кандидатов</h1><p class="muted">Опубликованные профили с подтверждённой категорией. История ФСП не обязательна.</p></div>
+<form class="card form" method="get" action="/employer/search" hx-get="/employer/search" hx-target="#matching-results" hx-swap="outerHTML" hx-push-url="true">
+<div class="form-row"><label>Специализация<select name="specialization"><option value="">Все</option>{% for s in specializations %}<option value="{{ s.code }}" {% if filters.specialization == s.code %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></label>
+<label>Грейд<select name="grade"><option value="">Все</option>{% for g in grades %}<option value="{{ g.code }}" {% if filters.grade == g.code %}selected{% endif %}>{{ g.name }}</option>{% endfor %}</select></label></div>
+<label>Навыки<input name="skills" value="{{ filters.skills|join(', ') }}" placeholder="Python, SQL" maxlength="2000"><span class="muted">Точное название, без учёта регистра. Разделяйте запятыми.</span></label>
+<label class="checkbox"><input type="checkbox" name="all_skills" value="true" {% if filters.all_skills %}checked{% endif %}>Все указанные навыки</label><p class="muted">По умолчанию достаточно одного совпадения. С галочкой нужны все указанные навыки; дополнительные навыки кандидата допускаются.</p>
+<div class="form-row"><label>Город<input name="location" value="{{ filters.location or '' }}" maxlength="255"></label><label>Формат работы<select name="work_format"><option value="">Любой</option>{% for code,label in [('remote','Удалённо'),('hybrid','Гибрид'),('office','Офис')] %}<option value="{{ code }}" {% if filters.work_format and filters.work_format.value == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label></div>
+<label>На странице<select name="page_size">{% if filters.page_size not in [10,20,50] %}<option value="{{ filters.page_size }}" selected>{{ filters.page_size }}</option>{% endif %}{% for n in [10,20,50] %}<option value="{{ n }}" {% if filters.page_size == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+<div class="actions"><button type="submit">Найти кандидатов</button><a class="button button-secondary" href="/employer/search">Сбросить фильтры</a></div><p class="muted">Порядок: по имени, затем по ID. Общий рейтинг не рассчитывается.</p></form>
+{% include 'matching/_results.html' %}{% endblock %}

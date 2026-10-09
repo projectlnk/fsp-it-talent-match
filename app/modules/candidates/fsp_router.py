@@ -32,6 +32,8 @@ _CANDIDATE_ONLY = require_role(UserRole.CANDIDATE)
 
 
 def _handle(exc: service.CandidateError) -> HTTPException:
+    if isinstance(exc, service.FspRegistryInvalid):
+        return HTTPException(status_code=502, detail=str(exc))
     if isinstance(exc, service.FspParticipantNotFound):
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -85,12 +87,17 @@ async def list_available_participants(
             response = await client.get("/participants")
             response.raise_for_status()
             items = response.json()
+            result = [FspParticipantRead.model_validate(item) for item in items]
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=502, detail="Некорректные данные реестра ФСП") from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail="Ошибка реестра ФСП") from exc
     except httpx.RequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Сервис ФСП временно недоступен",
         ) from exc
-    return [FspParticipantRead.model_validate(item) for item in items]
+    return result
 
 
 @router.post(
@@ -129,6 +136,8 @@ async def link_fsp(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Ошибка реестра ФСП",
         ) from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=502, detail="Некорректные данные реестра ФСП") from exc
     except httpx.RequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

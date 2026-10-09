@@ -119,7 +119,7 @@ def verify_email(session: Session, *, token: str) -> User:
     или истёк.
     """
     record = session.scalar(
-        select(EmailVerificationToken).where(EmailVerificationToken.token == token)
+        select(EmailVerificationToken).where(EmailVerificationToken.token == token).with_for_update()
     )
     if record is None or record.used_at is not None:
         raise InvalidVerificationToken()

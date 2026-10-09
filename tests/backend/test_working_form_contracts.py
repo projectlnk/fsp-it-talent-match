@@ -21,4 +21,7 @@ class Forms(HTMLParser):
 @pytest.mark.parametrize("name", CONTRACTS)
 def test_working_form_contract_unchanged(name):
     parser = Forms(); parser.feed((ROOT / "app/templates" / name).read_text(encoding="utf-8"))
-    assert parser.forms == CONTRACTS[name]
+    # Later features may add forms; preserve every original form exactly.
+    original = CONTRACTS[name]
+    actions = {(f['method'], f['action']) for f in original}
+    assert [f for f in parser.forms if (f['method'], f['action']) in actions] == original

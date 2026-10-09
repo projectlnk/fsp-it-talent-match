@@ -13,7 +13,7 @@ from app.main import app
 from app.web.templates import templates
 
 pytestmark = [pytest.mark.e2e, pytest.mark.skipif(os.getenv("RUN_E2E") != "1", reason="Set RUN_E2E=1")]
-SCREENSHOTS = Path(__file__).resolve().parents[2] / "docs/design-preview/screenshots"
+SCREENSHOTS = Path(os.getenv("E2E_SCREENSHOTS", str(Path(__file__).resolve().parents[2] / "docs/design-preview/screenshots")))
 
 def fixture_request(path, base_url):
     parsed=urlsplit(base_url)

@@ -11,6 +11,10 @@ from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.exc import IntegrityError
+from pydantic import ValidationError
+from app.modules.candidates.schemas import (CandidateProfileUpdate, CandidateSkillCreate,
+    CandidateSkillUpdate, CandidateExperienceCreate, CandidateExperienceUpdate, FspAchievementImport)
 
 from app.modules.candidates.models import (
     CandidateExperience,
@@ -62,6 +66,33 @@ def get_profile_by_user_id(session: Session, user_id: int) -> CandidateProfile:
     return profile
 
 
+def _validate(schema, data):
+    try:
+        return schema.model_validate(data).model_dump(exclude_unset=True)
+    except ValidationError as exc:
+        raise CandidateError("Проверьте обязательные поля, числовые значения и порядок дат/зарплаты") from exc
+
+
+def _lock_profile(session, user_id):
+    profile = session.scalar(select(CandidateProfile).where(
+        CandidateProfile.user_id == user_id).with_for_update().execution_options(populate_existing=True))
+    if profile is None:
+        raise ProfileNotFound()
+    return profile
+
+
+def _commit_skill(session):
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+        sqlite_duplicate = "UNIQUE constraint failed: candidate_skills.candidate_profile_id, candidate_skills.skill" in str(exc.orig)
+        if constraint == "uq_candidate_skills_profile_skill" or sqlite_duplicate:
+            raise SkillAlreadyExists() from exc
+        raise
+
+
 def update_profile(
     session: Session,
     *,
@@ -69,7 +100,12 @@ def update_profile(
     changes: dict[str, Any],
 ) -> CandidateProfile:
     """Обновляет поля профиля. Передаются только изменённые поля."""
-    profile = get_profile_by_user_id(session, user_id)
+    profile = _lock_profile(session, user_id)
+    changes = _validate(CandidateProfileUpdate, changes)
+    _validate(CandidateProfileUpdate, {
+        key: changes.get(key, getattr(profile, key))
+        for key in ('desired_salary_from', 'desired_salary_to')
+    })
     for key, value in changes.items():
         setattr(profile, key, value)
     session.commit()
@@ -87,8 +123,8 @@ def add_skill(
     level: str | None,
 ) -> CandidateProfile:
     """Добавляет навык. Поднимает SkillAlreadyExists при дубле."""
-    profile = get_profile_by_user_id(session, user_id)
-    normalized = skill.strip()
+    profile = _lock_profile(session, user_id)
+    normalized = _validate(CandidateSkillCreate, {"skill": skill, "level": level})["skill"]
     existing = session.scalar(
         select(CandidateSkill).where(
             CandidateSkill.candidate_profile_id == profile.id,
@@ -104,7 +140,7 @@ def add_skill(
             level=level,
         )
     )
-    session.commit()
+    _commit_skill(session)
     return get_profile_by_user_id(session, user_id)
 
 
@@ -116,7 +152,7 @@ def update_skill(
     changes: dict[str, Any],
 ) -> CandidateProfile:
     """Обновляет навык. Проверяет, что навык принадлежит профилю пользователя."""
-    profile = get_profile_by_user_id(session, user_id)
+    profile = _lock_profile(session, user_id)
     record = session.scalar(
         select(CandidateSkill).where(
             CandidateSkill.id == skill_id,
@@ -125,9 +161,10 @@ def update_skill(
     )
     if record is None:
         raise SkillNotFound()
+    changes = _validate(CandidateSkillUpdate, changes)
     for key, value in changes.items():
         setattr(record, key, value)
-    session.commit()
+    _commit_skill(session)
     return get_profile_by_user_id(session, user_id)
 
 
@@ -155,7 +192,8 @@ def add_experience(
     user_id: int,
     data: dict[str, Any],
 ) -> CandidateProfile:
-    profile = get_profile_by_user_id(session, user_id)
+    profile = _lock_profile(session, user_id)
+    data = _validate(CandidateExperienceCreate, data)
     session.add(CandidateExperience(candidate_profile_id=profile.id, **data))
     session.commit()
     return get_profile_by_user_id(session, user_id)
@@ -168,7 +206,7 @@ def update_experience(
     experience_id: int,
     changes: dict[str, Any],
 ) -> CandidateProfile:
-    profile = get_profile_by_user_id(session, user_id)
+    profile = _lock_profile(session, user_id)
     record = session.scalar(
         select(CandidateExperience).where(
             CandidateExperience.id == experience_id,
@@ -177,6 +215,11 @@ def update_experience(
     )
     if record is None:
         raise ExperienceNotFound()
+    changes = _validate(CandidateExperienceUpdate, changes)
+    _validate(CandidateExperienceCreate, {
+        key: changes.get(key, getattr(record, key))
+        for key in ('company_name', 'position', 'started_at', 'ended_at', 'description', 'is_current')
+    })
     for key, value in changes.items():
         setattr(record, key, value)
     session.commit()
@@ -207,6 +250,10 @@ def delete_experience(
 
 class FspLinkNotFound(CandidateError):
     """Связь с реестром ФСП не найдена."""
+
+
+class FspRegistryInvalid(CandidateError):
+    """Данные реестра не соответствуют договорённому контракту."""
 
 
 class FspParticipantNotFound(CandidateError):
@@ -252,10 +299,21 @@ def link_and_import_fsp(
 
     Возвращает (link, created, updated).
     """
-    profile = get_profile_by_user_id(session, user_id)
+    profile = _lock_profile(session, user_id)
+
+    # Validate every achievement before changing a link or flushing any rows.
+    try:
+        achievements_data = [FspAchievementImport.model_validate(item).model_dump() for item in achievements_data]
+    except (ValidationError, TypeError) as exc:
+        raise FspRegistryInvalid("Некорректные данные реестра ФСП") from exc
+    for item in achievements_data:
+        if not isinstance(item, dict) or item.get('participant_id') != participant_id:
+            raise FspParticipantNotFound("Реестр вернул достижение другого участника")
 
     # Проверим, что participant_id в ответе совпадает с запрошенным.
     # Это защита от подмены ответа.
+    if not isinstance(profile_data, dict):
+        raise FspRegistryInvalid("Некорректный профиль участника реестра ФСП")
     response_id = str(profile_data.get("id") or "").strip()
     if response_id != participant_id:
         raise FspParticipantNotFound(
@@ -294,13 +352,14 @@ def link_and_import_fsp(
             )
         link.registry_participant_id = participant_id
 
-    created, updated = _upsert_achievements(
-        session,
-        candidate_profile_id=profile.id,
-        achievements_data=achievements_data,
-    )
-
-    session.commit()
+    try:
+        created, updated = _upsert_achievements(
+            session, candidate_profile_id=profile.id, achievements_data=achievements_data,
+        )
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise FspParticipantNotFound("Участник уже привязан или импорт конфликтует с другим запросом") from exc
     session.refresh(link)
     return link, created, updated
 
@@ -375,7 +434,7 @@ def _parse_iso_date(value: Any) -> date | None:
 
 def unlink_fsp(session: Session, user_id: int) -> None:
     """Отвязывает профиль от реестра ФСП и удаляет импортированные достижения."""
-    profile = get_profile_by_user_id(session, user_id)
+    profile = _lock_profile(session, user_id)
     session.execute(
         delete(FspAchievement).where(
             FspAchievement.candidate_profile_id == profile.id

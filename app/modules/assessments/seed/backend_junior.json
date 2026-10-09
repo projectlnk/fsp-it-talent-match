@@ -175,9 +175,9 @@
       "payload": {
         "text_template": "Что вернёт запрос `SELECT {func}({col}) FROM users GROUP BY {group}`?",
         "variables": {
-          "func": [{"value": "COUNT", "answer": "COUNT"}],
-          "col": [{"value": "*", "answer": "COUNT"}],
-          "group": [{"value": "role", "answer": "COUNT"}]
+          "func": [{"value": "COUNT", "answer": "Количество пользователей в каждой роли"}],
+          "col": [{"value": "*", "answer": "Количество пользователей в каждой роли"}],
+          "group": [{"value": "role", "answer": "Количество пользователей в каждой роли"}]
         },
         "options": [
           "Количество пользователей в каждой роли",

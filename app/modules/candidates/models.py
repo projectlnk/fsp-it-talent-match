@@ -34,6 +34,7 @@ class CandidateProfile(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     full_name: Mapped[str] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_searchable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     about: Mapped[str | None] = mapped_column(Text, nullable=True)
     desired_role: Mapped[str | None] = mapped_column(String(255), nullable=True)

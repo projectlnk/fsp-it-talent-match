@@ -202,7 +202,6 @@ small,.muted{color:var(--muted)}
 .review-item .muted{font-size:12px}
 .result-score{font:56px var(--mono);letter-spacing:-.06em;color:var(--purple)}
 
-<<<<<<< Updated upstream
 .review-list { list-style: none; padding: 0; margin: 0; }
 .review-item { padding: 12px 0; border-bottom: 1px solid #eef2f7; }
 .review-item:last-child { border-bottom: none; }
@@ -243,7 +242,6 @@ code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 12p
 .offer-item { padding: 14px 0; border-bottom: 1px solid #eef2f7; }
 .offer-item:last-child { border-bottom: none; }
 .offer-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
-=======
 .candidate-card{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:18px;align-items:start;padding:24px;background:white;border:1px solid var(--line);border-radius:var(--radius)}
 .avatar{display:grid;place-items:center;width:52px;height:52px;background:var(--tint);color:var(--purple);font:17px var(--mono);border-radius:9px}
 .avatar-large{width:72px;height:72px;font-size:24px}
@@ -395,4 +393,5 @@ h2{font-size:23px}
 .resume-sheet{border:0;padding:0;max-width:none}
 body{background:white}
 }
->>>>>>> Stashed changes
+
+#matching-results .card,.matching-text{overflow-wrap:anywhere} .matching-text{white-space:pre-wrap} .matching-pagination{flex-wrap:wrap} #matching-results .tag-row{flex-wrap:wrap}

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator, field_validator
 
 
 class EmployerProfileRead(BaseModel):
@@ -22,6 +22,13 @@ class EmployerProfileRead(BaseModel):
 
 
 class EmployerProfileUpdate(BaseModel):
+    @field_validator('company_name', mode="before")
+    @classmethod
+    def _required_company(cls, value):
+        if value is None or not value.strip():
+            raise ValueError("Название компании не может быть пустым")
+        return value.strip()
+
     company_name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     industry: str | None = Field(default=None, max_length=255)
@@ -46,6 +53,13 @@ class OfferCreate(BaseModel):
     salary_to: int = Field(ge=0)
     salary_gross: bool = True
     contact_method: str | None = Field(default=None, max_length=255)
+
+    @field_validator('title', mode="before")
+    @classmethod
+    def _required_title(cls, value):
+        if not value.strip():
+            raise ValueError("Название приглашения не может быть пустым")
+        return value.strip()
 
     @model_validator(mode="after")
     def _check_salary(self) -> "OfferCreate":

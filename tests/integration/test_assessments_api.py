@@ -93,7 +93,8 @@ def _answer_all(client, token, attempt_id, correct: bool) -> None:
         for q in state["questions"]:
             answer = session.get(TestAnswer, q["answer_id"])
             snap = answer.question_snapshot or {}
-            payload = {"value": snap["correct"]} if correct else {"value": "__wrong__"}
+            assert snap["correct"] in snap["options"]
+            payload = {"value": snap["correct"] if correct else next(value for value in snap["options"] if value != snap["correct"])}
             r = client.post(
                 f"/api/v1/assessments/attempts/{attempt_id}/answers/{q['answer_id']}",
                 headers=_auth(token),

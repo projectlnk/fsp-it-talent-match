@@ -5,7 +5,7 @@ import pytest
 from playwright.sync_api import expect
 
 pytestmark = [pytest.mark.e2e, pytest.mark.skipif(os.getenv("RUN_E2E") != "1", reason="Set RUN_E2E=1")]
-SCREENSHOTS = Path(__file__).resolve().parents[2] / "docs" / "design-preview" / "screenshots"
+SCREENSHOTS = Path(os.getenv("E2E_SCREENSHOTS", str(Path(__file__).resolve().parents[2] / "docs" / "design-preview" / "screenshots")))
 PATHS = ["/", "/auth/login", "/auth/register", "/auth/check-email", "/design-preview", "/design-preview/candidate", "/design-preview/employer", "/design-preview/search", "/design-preview/person/1", "/design-preview/person/2", "/design-preview/invitation", "/design-preview/fsp", "/design-preview/privacy", "/design-preview/resume"]
 
 @pytest.mark.parametrize("width", [1440, 390, 320])
