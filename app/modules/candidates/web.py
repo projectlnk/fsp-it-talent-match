@@ -283,6 +283,7 @@ def fsp_unlink(
 
 @router.get("/profile/resume.pdf", response_class=Response)
 def download_resume(
+    request: Request,
     user: User = Depends(_CANDIDATE_ONLY),
     session: Session = Depends(get_session),
 ):
@@ -293,12 +294,10 @@ def download_resume(
     """
     try:
         pdf_bytes = resume_service.generate_resume_pdf(session, user_id=user.id)
-    except resume_service.ResumeError as exc:
-        # Если PDF не собрался — возвращаем на профиль с понятной ошибкой
-        return RedirectResponse(
-            "/candidate/profile",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+    except resume_service.ResumeError:
+        profile = service.get_profile_by_user_id(session, user.id)
+        return _render_profile(request, user, profile, session,
+                               error="Не удалось сформировать PDF. Попробуйте позже.", status_code=503)
 
     return Response(
         content=pdf_bytes,

@@ -17,6 +17,7 @@
     line-height: 1.45;
     color: #172234;
     margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .eyebrow {
@@ -34,6 +35,7 @@
   }
 
   h2 {
+    break-after: avoid;
     font-size: 12pt;
     margin: 16pt 0 6pt;
     padding-bottom: 3pt;
@@ -111,9 +113,9 @@
 
 <p class="subtitle">
   {% if profile.experience_years is not none %}Опыт: {{ profile.experience_years }} лет{% endif %}
-  {% if profile.desired_salary_from or profile.desired_salary_to %}
+  {% if profile.desired_salary_from is not none or profile.desired_salary_to is not none %}
     {% if profile.experience_years is not none %} · {% endif %}
-    Желаемый доход: {{ profile.desired_salary_from or '—' }}–{{ profile.desired_salary_to or '—' }} ₽
+    Желаемый доход: {{ profile.desired_salary_from if profile.desired_salary_from is not none else '—' }}–{{ profile.desired_salary_to if profile.desired_salary_to is not none else '—' }} ₽
   {% endif %}
 </p>
 
@@ -164,8 +166,19 @@
     {% endif %}
   </p>
   <p class="muted">
-    Грейд присвоен по результату теста, подтверждён платформой.
+    {{ 'Грейд подтверждён платформой.' if category.status == 'confirmed' else 'Категория не подтверждена.' }}
   </p>
+</section>
+{% endif %}
+
+{% if results %}
+<section>
+  <h2>История тестирования</h2>
+  {% for attempt, specialization, grade in results %}
+  <p>{{ specialization.name }} / {{ grade.name }} · {{ attempt.score if attempt.score is not none else '—' }}%
+    · {{ 'Подтверждён' if attempt.passed else 'Не подтверждён' }}
+    {% if attempt.finished_at %} · {{ attempt.finished_at.strftime('%d.%m.%Y') }}{% endif %}</p>
+  {% endfor %}
 </section>
 {% endif %}
 

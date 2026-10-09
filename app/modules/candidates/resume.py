@@ -12,11 +12,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.modules.assessments.models import Category, Grade, Specialization
+from app.modules.assessments.models import Category, Grade, Specialization, TestAttempt, AttemptStatus
 from app.modules.assessments.service import current_category
 from app.modules.auth.models import User
 from app.modules.candidates.models import CandidateProfile, WorkFormat
@@ -105,11 +105,21 @@ def generate_resume_pdf(session: Session, *, user_id: int) -> bytes:
         else None
     )
 
-    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
+    results = session.execute(
+        select(TestAttempt, Specialization, Grade)
+        .join(Specialization, Specialization.id == TestAttempt.specialization_id)
+        .join(Grade, Grade.id == TestAttempt.target_grade_id)
+        .where(TestAttempt.candidate_profile_id == profile.id,
+               TestAttempt.status == AttemptStatus.COMPLETED)
+        .order_by(TestAttempt.finished_at.desc().nullslast(), TestAttempt.id.desc())
+    ).all()
+    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)),
+                      autoescape=select_autoescape(['html']))
     template = env.get_template("candidates/resume_pdf.html")
     html = template.render(
         profile=profile,
         category=category,
+        results=results,
         work_format_label=work_format_label,
         user_email=user.email if user else None,
         generated_at=datetime.now(UTC),
