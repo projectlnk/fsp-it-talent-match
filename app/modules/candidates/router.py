@@ -22,7 +22,11 @@ from app.modules.candidates.schemas import (
     CandidateSkillUpdate,
 )
 
+from app.modules.candidates.fsp_router import router as fsp_router
+
 router = APIRouter(prefix="/candidates", tags=["candidates"])
+
+router.include_router(fsp_router)
 
 _CANDIDATE_ONLY = require_role(UserRole.CANDIDATE)
 

@@ -148,3 +148,19 @@ class FspProfileRead(BaseModel):
     link: FspRegistryLinkRead | None
     achievements: list[FspAchievementRead] = Field(default_factory=list)
     is_demo: bool = True
+
+class FspParticipantRead(BaseModel):
+    """Участник реестра ФСП — для выбора в UI."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    display_name: str
+    email: str
+
+
+class FspImportResult(BaseModel):
+    """Результат импорта достижений."""
+
+    created: int
+    updated: int
