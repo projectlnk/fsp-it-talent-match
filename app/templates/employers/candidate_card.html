@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ card.full_name }}</h1>
+
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+<p class="muted">
+  {{ card.specialization_name }} · {{ card.grade_name }} · статус: {{ card.category_status }}
+  {% if card.test_score is not none %} · тест {{ card.test_score }}%{% endif %}
+</p>
+
+<div class="alert alert-info">
+  Рейтинг: <strong>{{ card.ranking_score }}</strong> из 100.
+  {% if card.ranking_reasons %}
+    <ul class="reason-list">
+      {% for reason in card.ranking_reasons %}<li>{{ reason }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+<section class="profile-section">
+  <h2>Профиль</h2>
+  <dl class="kv">
+    {% if card.location %}<dt>Локация</dt><dd>{{ card.location }}</dd>{% endif %}
+    {% if card.desired_role %}<dt>Желаемая роль</dt><dd>{{ card.desired_role }}</dd>{% endif %}
+    {% if card.experience_years is not none %}<dt>Опыт</dt><dd>{{ card.experience_years }} лет</dd>{% endif %}
+    {% if card.desired_salary_from or card.desired_salary_to %}
+      <dt>Ожидания</dt>
+      <dd>
+        {{ card.desired_salary_from or '—' }} – {{ card.desired_salary_to or '—' }} ₽
+      </dd>
+    {% endif %}
+  </dl>
+  <p class="muted small">
+    Контакты (email и телефон) откроются только после того, как кандидат примет приглашение.
+  </p>
+</section>
+
+{% if card.skills %}
+<section class="profile-section">
+  <h2>Навыки</h2>
+  <ul class="chip-list">
+    {% for s in card.skills %}
+      <li class="chip">{{ s.skill }}{% if s.level %} — {{ s.level }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if card.experiences %}
+<section class="profile-section">
+  <h2>Опыт работы</h2>
+  <ul class="experience-list">
+    {% for e in card.experiences %}
+      <li class="experience-item">
+        <strong>{{ e.position }}</strong> — {{ e.company_name }}
+        {% if e.is_current %}<span class="badge">сейчас</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if card.fsp_achievements %}
+<section class="profile-section">
+  <h2>Достижения ФСП</h2>
+  <ul class="achievement-list">
+    {% for a in card.fsp_achievements %}
+      <li class="achievement-item">
+        <div class="achievement-head">
+          <strong>{{ a.title }}</strong>
+          {% if a.is_team %}<span class="badge">командное</span>{% endif %}
+          {% if a.is_demo %}<span class="badge badge-demo">демо</span>{% endif %}
+        </div>
+        <div class="muted">
+          {% if a.competition_name %}{{ a.competition_name }}{% endif %}
+          {% if a.place %} · {{ a.place }} место{% endif %}
+          {% if a.rank %} · {{ a.rank }}{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="profile-section">
+  <h2>Отправить приглашение</h2>
+  <form method="post" action="/employer/offers" class="form">
+    <input type="hidden" name="candidate_profile_id" value="{{ card.profile_id }}">
+    <label>Заголовок
+      <input type="text" name="title" required maxlength="255"
+             value="Приглашение для {{ card.full_name }}">
+    </label>
+    <label>Описание предложения
+      <textarea name="description" rows="4" placeholder="Опишите проект, команду, задачи"></textarea>
+    </label>
+    <div class="form-row">
+      <label>Зарплата от, ₽
+        <input type="number" name="salary_from" required min="0" value="150000">
+      </label>
+      <label>Зарплата до, ₽
+        <input type="number" name="salary_to" required min="0" value="250000">
+      </label>
+    </div>
+    <label class="checkbox">
+      <input type="checkbox" name="salary_gross" value="1" checked>
+      Указана до вычета НДФЛ (gross)
+    </label>
+    <label>Способ связи
+      <input type="text" name="contact_method" maxlength="255"
+             placeholder="Telegram: @hr или email: hr@company">
+    </label>
+    <button type="submit">Отправить приглашение</button>
+  </form>
+</section>
+
+<p>
+  <a href="/employer/search">← Назад к поиску</a>
+</p>
+{% endblock %}

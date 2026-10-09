@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Поиск кандидатов</h1>
+
+<form method="get" action="/employer/search" class="form">
+  <div class="form-row">
+    <label>Специализация
+      <select name="specialization">
+        <option value="">Все</option>
+        <option value="backend" {% if filters.specialization == 'backend' %}selected{% endif %}>Backend</option>
+        <option value="frontend" {% if filters.specialization == 'frontend' %}selected{% endif %}>Frontend</option>
+      </select>
+    </label>
+    <label>Грейд
+      <select name="grade">
+        <option value="">Все</option>
+        <option value="intern" {% if filters.grade == 'intern' %}selected{% endif %}>Intern</option>
+        <option value="junior" {% if filters.grade == 'junior' %}selected{% endif %}>Junior</option>
+        <option value="middle" {% if filters.grade == 'middle' %}selected{% endif %}>Middle</option>
+        <option value="senior" {% if filters.grade == 'senior' %}selected{% endif %}>Senior</option>
+      </select>
+    </label>
+  </div>
+  <label>Навыки (через запятую)
+    <input type="text" name="skills" value="{{ filters.skills }}" placeholder="Python, FastAPI">
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" name="has_fsp_achievements" value="1"
+           {% if filters.has_fsp_achievements == '1' %}checked{% endif %}>
+    Только с достижениями ФСП
+  </label>
+  <button type="submit">Найти</button>
+</form>
+
+<p class="muted">
+  Найдено кандидатов: <strong>{{ result.meta.total }}</strong>
+</p>
+
+{% if result.items %}
+  <ul class="candidate-list">
+    {% for c in result.items %}
+      <li class="candidate-item">
+        <div class="candidate-head">
+          <a href="/employer/candidates/{{ c.profile_id }}" class="candidate-link">
+            <strong>{{ c.full_name }}</strong>
+          </a>
+          <span class="badge">{{ c.specialization_name }} · {{ c.grade_name }}</span>
+          {% if c.fsp_has_achievements %}
+            <span class="badge badge-fsp">ФСП</span>
+          {% endif %}
+        </div>
+        <div class="muted">
+          {% if c.location %}{{ c.location }} · {% endif %}
+          {% if c.experience_years is not none %}опыт {{ c.experience_years }} лет · {% endif %}
+          рейтинг {{ c.ranking_score }}
+        </div>
+        {% if c.ranking_reasons %}
+          <ul class="reason-list">
+            {% for reason in c.ranking_reasons %}
+              <li>{{ reason }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        {% if c.skills %}
+          <div class="chip-list-inline">
+            {% for s in c.skills[:6] %}
+              <span class="chip-small">{{ s.skill }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="alert">По заданным фильтрам никто не найден.</div>
+{% endif %}
+{% endblock %}
