@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_session
 from app.modules.assessments import service
+from app.modules.assessments.grades import GRADE_LABELS
 from app.modules.assessments.models import (
     CandidateCategory,
     Category,
@@ -31,7 +32,7 @@ _CANDIDATE_ONLY = require_role(UserRole.CANDIDATE)
 
 
 def _render(request: Request, user: User, template: str, context: dict, status_code: int = 200):
-    base = {"user": user}
+    base = {"user": user, "grade_labels": GRADE_LABELS}
     base.update(context)
     return templates.TemplateResponse(
         request=request, name=template, context=base, status_code=status_code
@@ -122,7 +123,7 @@ def start_form(
     session: Session = Depends(get_session),
 ):
     specializations = list(session.scalars(select(Specialization).order_by(Specialization.id)))
-    grades = list(session.scalars(select(Grade).order_by(Grade.order)))
+    grades = list(session.scalars(select(Grade).where(Grade.code.in_(GRADE_LABELS)).order_by(Grade.order)))
     return _render(
         request,
         user,
@@ -152,7 +153,7 @@ def start_submit(
         )
     except service.AttemptBlocked as exc:
         specializations = list(session.scalars(select(Specialization).order_by(Specialization.id)))
-        grades = list(session.scalars(select(Grade).order_by(Grade.order)))
+        grades = list(session.scalars(select(Grade).where(Grade.code.in_(GRADE_LABELS)).order_by(Grade.order)))
         return _render(
             request,
             user,
@@ -166,7 +167,7 @@ def start_submit(
         )
     except service.AssessmentError as exc:
         specializations = list(session.scalars(select(Specialization).order_by(Specialization.id)))
-        grades = list(session.scalars(select(Grade).order_by(Grade.order)))
+        grades = list(session.scalars(select(Grade).where(Grade.code.in_(GRADE_LABELS)).order_by(Grade.order)))
         return _render(
             request,
             user,

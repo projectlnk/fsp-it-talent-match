@@ -26,6 +26,7 @@ from app.modules.assessments.models import (
     TestAttempt,
 )
 from app.modules.candidates.models import CandidateProfile
+from app.modules.assessments.grades import GRADE_LABELS
 
 
 # --- Правила тестирования --------------------------------------------------
@@ -99,6 +100,8 @@ def _get_specialization(session: Session, code: str) -> Specialization:
 
 
 def _get_grade(session: Session, code: str) -> Grade:
+    if code not in GRADE_LABELS:
+        raise AssessmentError("Выберите грейд из списка: Intern, Junior, Middle, Senior")
     grade = session.scalar(select(Grade).where(Grade.code == code))
     if grade is None:
         raise GradeNotFound(code)
@@ -302,23 +305,11 @@ def submit_answer(
 # --- Финиш попытки и подсчёт ----------------------------------------------
 
 
-def _weighted_score(answers: list[TestAnswer]) -> float:
-    """Взвешенный счёт: вес правильного ответа = difficulty вопроса.
-
-    Возвращает долю от 0.0 до 1.0. Ответы без is_correct (не отвечено)
-    считаются неправильными.
-    """
-    total_weight = 0
-    correct_weight = 0
-    for answer in answers:
-        snap = answer.question_snapshot or {}
-        weight = max(1, int(snap.get("difficulty", 1)))
-        total_weight += weight
-        if answer.is_correct:
-            correct_weight += weight
-    if total_weight == 0:
+def _answer_ratio(answers: list[TestAnswer]) -> float:
+    """Correct answers / all assigned questions; unanswered counts as wrong."""
+    if not answers:
         return 0.0
-    return correct_weight / total_weight
+    return sum(answer.is_correct is True for answer in answers) / len(answers)
 
 
 def finish_attempt(
@@ -327,7 +318,7 @@ def finish_attempt(
     user_id: int,
     attempt_id: int,
 ) -> TestAttempt:
-    """Завершает попытку, считает взвешенный счёт, присваивает категорию.
+    """Завершает попытку, считает процент правильных ответов, присваивает категорию.
 
     Возвращает обновлённую попытку.
     """
@@ -347,7 +338,7 @@ def finish_attempt(
     if attempt.status == AttemptStatus.ABANDONED:
         raise AttemptAlreadyCompleted()
 
-    ratio = _weighted_score(list(attempt.answers))
+    ratio = _answer_ratio(list(attempt.answers))
     attempt.score = int(round(ratio * 100))
     attempt.passed = ratio >= PASS_THRESHOLD
     attempt.status = AttemptStatus.COMPLETED

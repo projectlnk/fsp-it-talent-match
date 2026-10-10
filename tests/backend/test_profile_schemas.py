@@ -71,6 +71,21 @@ def test_skill_create_accepts_level_none():
     assert payload.level is None
 
 
+@pytest.mark.parametrize('level', [None, '', 'intern', 'junior', 'middle', 'senior', ' Middle '])
+def test_skill_level_dropdown_values(level):
+    from app.modules.candidates.schemas import CandidateSkillUpdate
+    expected = level.strip().lower() or None if isinstance(level, str) else None
+    assert CandidateSkillCreate(skill='Python', level=level).level == expected
+    assert CandidateSkillUpdate(level=level).level == expected
+
+
+def test_skill_level_rejects_arbitrary_text():
+    from app.modules.candidates.schemas import CandidateSkillUpdate
+    for schema in [CandidateSkillCreate, CandidateSkillUpdate]:
+        with pytest.raises(ValidationError):
+            schema(skill='Python', level='arbitrary')
+
+
 # --- CandidateExperienceCreate ------------------------------------------
 
 

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}<div class="card auth-status"><h1>Подтверждение email</h1>
+{% if registered_candidate or request.query_params.get('registered') == 'candidate' or (user and user.role.value == 'candidate' and not user.is_email_verified) %}<div class="notice" role="status">По умолчанию ваш профиль скрыт от работодателей. Открыть его можно в настройках профиля. <a href="/candidate/profile#visibility">Перейти в настройки</a></div>{% endif %}
 {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>
 {% elif user and user.is_email_verified %}<p>Email уже подтверждён.</p>
 {% else %}<p>Проверьте письмо со ссылкой подтверждения и папку «Спам».</p>{% endif %}

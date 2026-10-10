@@ -1,6 +1,8 @@
 """HTML-страницы модуля auth: регистрация, вход, подтверждение email."""
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -52,10 +54,10 @@ def register_submit(
         payload = UserRegister(email=email, password=password, role=role,
                                full_name=full_name or None)
         service.register_user(session, **payload.model_dump())
-        return RedirectResponse("/auth/check-email", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse("/auth/check-email?registered=" + payload.role.value, status_code=status.HTTP_303_SEE_OTHER)
     except service.VerificationEmailDeliveryError:
         return templates.TemplateResponse(request=request, name="auth/check_email.html",
-            context={"user": None, "error": "Аккаунт создан, но письмо не отправлено. Войдите и запросите его повторно."}, status_code=503)
+            context={"user": None, "registered_candidate": payload.role == UserRole.CANDIDATE, "error": "Аккаунт создан, но письмо не отправлено. Войдите и запросите его повторно."}, status_code=503)
     except ValidationError:
         error = "Проверьте email, роль, имя и пароль (от 8 до 128 символов)"
     except service.EmailAlreadyExists:
@@ -123,13 +125,15 @@ def login_submit(
         samesite="lax",
         secure=request.url.scheme == "https",
     )
+    response.set_cookie("fspcareer_auth_change", uuid.uuid4().hex, max_age=60, samesite="lax", secure=request.url.scheme == "https")
     return response
 
 
 @router.post("/logout")
-def logout() -> RedirectResponse:
+def logout(request: Request) -> RedirectResponse:
     response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(COOKIE_NAME)
+    response.set_cookie("fspcareer_auth_change", uuid.uuid4().hex, max_age=60, samesite="lax", secure=request.url.scheme == "https")
     return response
 
 

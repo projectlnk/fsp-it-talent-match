@@ -6,6 +6,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from app.modules.candidates.models import WorkFormat
+from app.modules.assessments.grades import GradeCode
 
 
 # --- Навыки --------------------------------------------------------------
@@ -20,6 +21,11 @@ class CandidateSkillRead(BaseModel):
 
 
 class CandidateSkillCreate(BaseModel):
+    @field_validator('level', mode='before')
+    @classmethod
+    def _optional_level(cls, value):
+        return value.strip().lower() or None if isinstance(value, str) else value
+
     @field_validator('skill', mode="before")
     @classmethod
     def _required_value(cls, value):
@@ -28,10 +34,15 @@ class CandidateSkillCreate(BaseModel):
         return value.strip() if isinstance(value, str) else value
 
     skill: str = Field(min_length=1, max_length=100)
-    level: str | None = Field(default=None, max_length=50)
+    level: GradeCode | None = None
 
 
 class CandidateSkillUpdate(BaseModel):
+    @field_validator('level', mode='before')
+    @classmethod
+    def _optional_level(cls, value):
+        return value.strip().lower() or None if isinstance(value, str) else value
+
     @field_validator('skill', mode="before")
     @classmethod
     def _required_value(cls, value):
@@ -40,7 +51,7 @@ class CandidateSkillUpdate(BaseModel):
         return value.strip() if isinstance(value, str) else value
 
     skill: str | None = Field(default=None, min_length=1, max_length=100)
-    level: str | None = Field(default=None, max_length=50)
+    level: GradeCode | None = None
 
 
 # --- Опыт ----------------------------------------------------------------

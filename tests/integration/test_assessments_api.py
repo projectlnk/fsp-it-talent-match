@@ -16,6 +16,7 @@ from app.db.session import SessionLocal
 from app.modules.assessments.models import (
     CandidateCategory,
     GradeChangeCooldown,
+    Grade,
     TestAnswer,
     TestAttempt,
 )
@@ -65,6 +66,39 @@ def _register_and_login(client, email, role="candidate") -> str:
 
 def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.mark.parametrize('correct,total,expected', [(0,10,0),(1,10,10),(5,10,50),(9,10,90),(10,10,100),(3,4,75)])
+def test_equal_question_scoring_persisted_and_rendered(client, correct, total, expected):
+    token = _register_and_login(client, _email())
+    attempt = _start_attempt(client, token)
+    aid = attempt['attempt_id']
+    with SessionLocal() as session:
+        answers = list(session.scalars(select(TestAnswer).where(TestAnswer.test_attempt_id == aid).order_by(TestAnswer.id)))
+        # Own disposable test attempt; cover a denominator other than ten.
+        for answer in answers[total:]:
+            session.delete(answer)
+        session.commit()
+        questions = [(a.id, a.question_snapshot) for a in answers[:total]]
+    for i, (answer_id, snap) in enumerate(questions):
+        value = snap['correct'] if i < correct else next(v for v in snap['options'] if v != snap['correct'])
+        response = client.post(f'/api/v1/assessments/attempts/{aid}/answers/{answer_id}', headers=_auth(token), json={'value':value})
+        assert response.status_code == 200
+    response = client.post(f'/api/v1/assessments/attempts/{aid}/finish', headers=_auth(token))
+    assert response.status_code == 200, response.text
+    assert response.json()['score'] == expected
+    with SessionLocal() as session:
+        saved = session.get(TestAttempt, aid)
+        assert saved.score == expected
+        category = session.scalar(select(CandidateCategory).where(CandidateCategory.candidate_profile_id == saved.candidate_profile_id, CandidateCategory.is_current.is_(True)))
+        assert category.test_score == expected
+        assert session.get(Grade, saved.target_grade_id).code == 'junior'
+    state = _attempt_state(client, token, aid)
+    assert state['total_questions'] == total
+    assert sum(q['is_correct'] for q in state['questions']) == correct
+    html = client.get(f'/assessments/attempt/{aid}/result', headers=_auth(token))
+    assert html.status_code == 200
+    assert f'{expected}%' in html.text
 
 
 def _start_attempt(client, token, spec="backend", grade="junior") -> dict:
@@ -191,7 +225,7 @@ def test_start_unknown_grade(client):
         headers=_auth(token),
         json={"specialization": "backend", "grade": "no-such-grade"},
     )
-    assert r.status_code == 404
+    assert r.status_code == 422
 
 
 def test_second_start_returns_same_attempt(client):

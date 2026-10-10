@@ -124,7 +124,8 @@ def add_skill(
 ) -> CandidateProfile:
     """Добавляет навык. Поднимает SkillAlreadyExists при дубле."""
     profile = _lock_profile(session, user_id)
-    normalized = _validate(CandidateSkillCreate, {"skill": skill, "level": level})["skill"]
+    validated = _validate(CandidateSkillCreate, {"skill": skill, "level": level})
+    normalized = validated['skill']
     existing = session.scalar(
         select(CandidateSkill).where(
             CandidateSkill.candidate_profile_id == profile.id,
@@ -137,7 +138,7 @@ def add_skill(
         CandidateSkill(
             candidate_profile_id=profile.id,
             skill=normalized,
-            level=level,
+            level=validated['level'],
         )
     )
     _commit_skill(session)

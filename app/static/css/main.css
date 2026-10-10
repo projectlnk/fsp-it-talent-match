@@ -145,6 +145,7 @@ small,.muted{color:var(--muted)}
 .checkbox input{width:17px;height:17px;flex:none;accent-color:var(--purple)}
 .form-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .form-inline input{flex:1;min-width:120px}
+.form-inline select{flex:1;min-width:120px;width:auto}
 .form-inline button{flex:none}
 .field-help{font-size:11px;color:var(--muted);font-weight:400}
 .form-divider{height:1px;background:var(--line);margin:3px 0}
@@ -153,6 +154,15 @@ small,.muted{color:var(--muted)}
 .alert-success{background:var(--tint);border-color:#ded8ff;color:var(--purple)}
 .profile-section{margin-top:24px;padding:26px;background:white;border:1px solid var(--line);border-radius:var(--radius)}
 .profile-section h2{font-size:20px}
+.profile-editor{display:flex;flex-direction:column;gap:24px;min-width:0}
+.profile-editor>.profile-section{margin-top:0}
+.card.profile-visibility{position:relative;padding:12px 20px;margin:0}
+.profile-visibility p{font-size:11px;margin:4px 0 0;line-height:1.5}
+.profile-visibility .visibility-form .checkbox{justify-content:space-between;gap:16px;font-size:13px;padding-right:33px}
+.profile-visibility .visibility-form .checkbox input{position:absolute;right:20px;top:50%;transform:translateY(-50%);margin:0}
+.profile-visibility .visibility-title{font-family:var(--mono);font-size:20px;font-weight:500;line-height:1.2;letter-spacing:-.04em;color:var(--ink)}
+.profile-visibility [data-visibility-status]:empty{display:none}
+#auth-sync-notice .button{margin-left:12px}
 .chip-list{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0 0 22px}
 .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;background:var(--soft);border:1px solid var(--line);border-radius:5px;font-size:12px}
 .chip-remove,button[type=submit].chip-remove{background:transparent;color:var(--muted);padding:0 4px;min-height:24px;border:0;font-size:19px}
