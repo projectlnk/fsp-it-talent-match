@@ -15,7 +15,7 @@
   <label>Грейд
     <select name="grade" required>
       {% for g in grades %}
-        <option value="{{ g.code }}">{{ g.name }}</option>
+        <option value="{{ g.code }}">{{ grade_labels[g.code] }}</option>
       {% endfor %}
     </select>
   </label>

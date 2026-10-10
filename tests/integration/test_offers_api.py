@@ -12,6 +12,7 @@ from app.db.session import SessionLocal
 from app.modules.auth.models import User
 from app.modules.candidates.models import CandidateProfile
 from app.modules.candidates.service import update_profile
+from app.modules.matching.service import set_publication
 
 pytestmark = [
     pytest.mark.integration,
@@ -65,6 +66,7 @@ def _get_candidate_profile_id(email: str) -> int:
         profile = session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == user.id)
         )
+        set_publication(session, user.id, True)
         return profile.id
 
 

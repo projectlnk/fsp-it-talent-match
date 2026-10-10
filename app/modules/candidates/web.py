@@ -7,6 +7,11 @@ import httpx
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+from app.modules.assessments.models import Grade, Specialization, Category
+from app.modules.assessments import service as assessment_service
+from app.modules.assessments.grades import GRADE_LABELS
+from app.modules.matching.publication import csrf_token
 
 from app.core.config import get_settings
 from app.db.session import get_session
@@ -48,6 +53,9 @@ def _render_profile(
 ):
     fsp_link = service.get_fsp_link(session, user.id)
     fsp_achievements = service.list_fsp_achievements(session, user.id)
+    current = assessment_service.current_category(session, user_id=user.id)
+    category = session.get(Category, current.category_id) if current else None
+    current_grade = session.get(Grade, category.grade_id) if category else None
     return templates.TemplateResponse(
         request=request,
         name="candidates/profile.html",
@@ -55,6 +63,11 @@ def _render_profile(
             "user": user,
             "profile": profile,
             "work_formats": list(WorkFormat),
+            "grades": list(session.scalars(select(Grade).where(Grade.code.in_(GRADE_LABELS)).order_by(Grade.order))),
+            "grade_labels": GRADE_LABELS,
+            "current_grade": current_grade,
+            "specializations": list(session.scalars(select(Specialization).order_by(Specialization.id))),
+            "csrf_token": csrf_token(user.id),
             "error": error,
             "fsp_link": fsp_link,
             "fsp_achievements": fsp_achievements,
@@ -283,6 +296,7 @@ def fsp_unlink(
 
 @router.get("/profile/resume.pdf", response_class=Response)
 def download_resume(
+    request: Request,
     user: User = Depends(_CANDIDATE_ONLY),
     session: Session = Depends(get_session),
 ):
@@ -293,12 +307,10 @@ def download_resume(
     """
     try:
         pdf_bytes = resume_service.generate_resume_pdf(session, user_id=user.id)
-    except resume_service.ResumeError as exc:
-        # Если PDF не собрался — возвращаем на профиль с понятной ошибкой
-        return RedirectResponse(
-            "/candidate/profile",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+    except resume_service.ResumeError:
+        profile = service.get_profile_by_user_id(session, user.id)
+        return _render_profile(request, user, profile, session,
+                               error="Не удалось сформировать PDF. Попробуйте позже.", status_code=503)
 
     return Response(
         content=pdf_bytes,

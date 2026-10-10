@@ -1,6 +1,8 @@
 """HTML-страницы модуля auth: регистрация, вход, подтверждение email."""
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -9,7 +11,7 @@ from app.modules.auth.schemas import UserRegister
 
 from app.db.session import get_session
 from app.modules.auth import service
-from app.modules.auth.dependencies import COOKIE_NAME, get_current_user_optional
+from app.modules.auth.dependencies import COOKIE_NAME, get_current_user, get_current_user_optional
 from app.modules.auth.models import User, UserRole
 from app.web.templates import templates
 
@@ -52,7 +54,10 @@ def register_submit(
         payload = UserRegister(email=email, password=password, role=role,
                                full_name=full_name or None)
         service.register_user(session, **payload.model_dump())
-        return RedirectResponse("/auth/check-email", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse("/auth/check-email?registered=" + payload.role.value, status_code=status.HTTP_303_SEE_OTHER)
+    except service.VerificationEmailDeliveryError:
+        return templates.TemplateResponse(request=request, name="auth/check_email.html",
+            context={"user": None, "registered_candidate": payload.role == UserRole.CANDIDATE, "error": "Аккаунт создан, но письмо не отправлено. Войдите и запросите его повторно."}, status_code=503)
     except ValidationError:
         error = "Проверьте email, роль, имя и пароль (от 8 до 128 символов)"
     except service.EmailAlreadyExists:
@@ -118,31 +123,33 @@ def login_submit(
         max_age=expires_in,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=request.url.scheme == "https",
     )
+    response.set_cookie("fspcareer_auth_change", uuid.uuid4().hex, max_age=60, samesite="lax", secure=request.url.scheme == "https")
     return response
 
 
 @router.post("/logout")
-def logout() -> RedirectResponse:
+def logout(request: Request) -> RedirectResponse:
     response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(COOKIE_NAME)
+    response.set_cookie("fspcareer_auth_change", uuid.uuid4().hex, max_age=60, samesite="lax", secure=request.url.scheme == "https")
     return response
 
 
 @router.get("/check-email", response_class=HTMLResponse)
-def check_email(request: Request):
+def check_email(request: Request, user: User | None = Depends(get_current_user_optional)):
     return templates.TemplateResponse(
         request=request,
         name="auth/check_email.html",
-        context={"user": None},
+        context={"user": user, "error": None},
     )
 
 
 @router.get("/verify", response_class=HTMLResponse)
 def verify_email_page(
     request: Request,
-    token: str,
+    token: str = "",
     session: Session = Depends(get_session),
 ):
     success = False
@@ -150,6 +157,10 @@ def verify_email_page(
         service.verify_email(session, token=token)
         success = True
         message = "Email подтверждён. Теперь можно войти."
+    except service.AlreadyVerifiedEmail:
+        message = "Email уже подтверждён. Можно войти в аккаунт."
+    except service.ExpiredVerificationToken:
+        message = "Ссылка истекла. Войдите и запросите письмо заново."
     except service.InvalidVerificationToken:
         message = "Ссылка недействительна или истекла. Запросите письмо заново."
 
@@ -159,3 +170,14 @@ def verify_email_page(
         context={"user": None, "message": message, "success": success},
         status_code=200 if success else status.HTTP_400_BAD_REQUEST,
     )
+
+@router.post("/resend-verification", response_class=HTMLResponse)
+def resend_verification_page(request: Request, user: User = Depends(get_current_user),
+                             session: Session = Depends(get_session)):
+    error = None
+    try:
+        service.resend_verification_email(session, user=user)
+    except service.VerificationEmailDeliveryError:
+        error = "Письмо не отправлено. Попробуйте повторить позже."
+    return templates.TemplateResponse(request=request, name="auth/check_email.html",
+        context={"user": user, "error": error}, status_code=503 if error else 200)

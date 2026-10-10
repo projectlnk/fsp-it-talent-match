@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+from app.modules.assessments.grades import GradeCode
 
 
 class SpecializationRead(BaseModel):
@@ -41,7 +42,7 @@ class CooldownRead(BaseModel):
 
 class StartAttemptRequest(BaseModel):
     specialization: str = Field(min_length=1, max_length=100)
-    grade: str = Field(min_length=1, max_length=50)
+    grade: GradeCode
 
 
 class AttemptSummary(BaseModel):

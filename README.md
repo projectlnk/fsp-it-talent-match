@@ -59,6 +59,27 @@ docker compose up --build
 - Мок FSP ID: http://localhost:8001/docs
 - Mailpit (почта): http://localhost:8025
 
+### Регистрация и подтверждение email для жюри
+
+После скачивания репозитория скопируйте `.env.example` в `.env`
+(`cp .env.example .env`; в PowerShell — `Copy-Item .env.example .env`)
+и выполните `docker compose up --build`. Дождитесь готовности приложения.
+
+1. Откройте http://localhost:8000/auth/register и зарегистрируйте кандидата,
+   например с адресом `jury@example.com`, указав имя и пароль от 8 символов.
+2. Откройте http://localhost:8025 — Mailpit принимает письма локально.
+3. Найдите письмо «Подтверждение email — FSP IT Talent Match» для этого адреса
+   и нажмите «Подтвердить email». Ссылка ведёт на `http://localhost:8000/auth/verify`;
+   вручную исправлять её не нужно.
+4. После сообщения об успешном подтверждении откройте
+   http://localhost:8000/auth/login и войдите с указанными email и паролем.
+
+Реальный почтовый ящик не нужен: Mailpit не отправляет письма во внешнюю почту.
+Используйте новый адрес для каждой регистрации, если аккаунт уже существует.
+Для другого порта или внешнего адреса задайте `APP_BASE_URL` в `.env`
+(например, `http://localhost:8080` вместе с `APP_PORT=8080`).
+Внутренний адрес `http://app:8000` для ссылок в письмах использовать нельзя.
+
 ## Сквозной сценарий
 
 1. Кандидат регистрируется, подтверждает email, проходит тест на грейд.
@@ -457,3 +478,29 @@ Python в окружении аудита — 3.12.15. Есть предупре
 
 HTMX хранится локально; лицензия — `app/static/vendor/HTMX-LICENSE.txt` (Zero-Clause BSD). Источники: https://htmx.org/docs/ и https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js. Справка uv/Docker: https://docs.astral.sh/uv/guides/integration/docker/.
 >>>>>>> Stashed changes
+
+
+## Письма подтверждения: Mailpit и внешний SMTP
+
+Локально Docker Compose отправляет письма в Mailpit: интерфейс http://localhost:8025
+(или порт `MAILPIT_PORT`). Mailpit не доставляет письма на внешние адреса.
+
+Настройки: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
+`SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_STARTTLS`, `SMTP_SSL`.
+Для внешнего провайдера задайте его host/port, адрес отправителя и выданные им
+credentials. STARTTLS обычно использует порт 587 (`SMTP_STARTTLS=true`),
+implicit SSL — 465 (`SMTP_SSL=true`). Одновременно оба режима включать нельзя.
+Логин и пароль задаются вместе; для Mailpit они пустые, TLS/SSL выключены.
+Для Gmail используются SMTP/app-specific credentials Google в соответствии
+с настройками аккаунта. Не сохраняйте реальные пароли в Git.
+
+`APP_BASE_URL` — адрес приложения, доступный браузеру получателя письма:
+локально `http://localhost:8000`, на сервере
+`https://fspcareer.waytotarelka.ru`. Ссылка ведёт на существующий `/auth/verify`.
+После изменения env пересоздайте app через `docker compose up -d`.
+
+Проверка: регистрация → письмо → ссылка → подтверждённый email.
+При ошибке SMTP аккаунт сохраняется, но приложение сообщает, что письмо не
+отправлено. Войдите и откройте `/auth/check-email` для повторной отправки.
+Успешная SMTP-отправка означает приём письма сервером, а не гарантию попадания
+во входящие. Токены, срок действия и одноразовое подтверждение не изменены.

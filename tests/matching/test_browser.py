@@ -38,7 +38,7 @@ def test_search_navigation_htmx_mobile(page,matching_server,headers,width):
     page.screenshot(path=str(out/f'search-{width}.png'),full_page=True)
     page.locator('#matching-results a[href="/employer/candidates/1"]').first.click()
     expect(page.get_by_role('heading',name='Подтверждённая категория')).to_be_visible()
-    expect(page.get_by_role('button',name='Пригласить',exact=True)).to_be_disabled()
+    expect(page.get_by_role('button',name='Пригласить',exact=True)).to_be_enabled()
     expect(page.locator('main')).to_contain_text('Истории ФСП нет')
     body=page.content()
     for secret in ['candidate-secret-','secret-contact@example.invalid','secret_handle','999']: assert secret not in body

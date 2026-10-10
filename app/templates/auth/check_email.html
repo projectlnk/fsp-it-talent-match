@@ -1,1 +1,8 @@
-{% extends "base.html" %}{% block content %}<section class="card auth-status"><span class="status-symbol" aria-hidden="true">@</span><p class="eyebrow">Следующий шаг / Email</p><h1>Проверьте почту</h1><p>Мы отправили письмо со ссылкой для подтверждения email.</p><p class="muted">Если письма нет — проверьте папку «Спам».</p><a class="button" href="/auth/login">Перейти ко входу →</a></section>{% endblock %}
+{% extends "base.html" %}
+{% block content %}<div class="card auth-status"><h1>Подтверждение email</h1>
+{% if registered_candidate or request.query_params.get('registered') == 'candidate' or (user and user.role.value == 'candidate' and not user.is_email_verified) %}<div class="notice" role="status">По умолчанию ваш профиль скрыт от работодателей. Открыть его можно в настройках профиля. <a href="/candidate/profile#visibility">Перейти в настройки</a></div>{% endif %}
+{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>
+{% elif user and user.is_email_verified %}<p>Email уже подтверждён.</p>
+{% else %}<p>Проверьте письмо со ссылкой подтверждения и папку «Спам».</p>{% endif %}
+{% if user and not user.is_email_verified %}<form method="post" action="/auth/resend-verification"><button type="submit" class="button">Отправить письмо повторно</button></form>
+{% elif not user %}<p>Для повторной отправки войдите в аккаунт.</p><a href="/auth/login?next=/auth/check-email" class="button">Войти</a>{% endif %}</div>{% endblock %}

@@ -15,7 +15,7 @@
   {% endif %}
 </div>
 
-<section class="card"><span class="stat-label">Результат тестирования</span><div class="result-score">{{ state.score }}%</div><p class="muted">Взвешенный по сложности счёт</p></section>
+<section class="card"><span class="stat-label">Результат тестирования</span><div class="result-score">{{ state.score }}%</div><p class="muted">Правильных ответов: {{ state.questions|selectattr('is_correct')|list|length }} из {{ state.total_questions }}. Все вопросы имеют одинаковый вес.</p></section>
 
 {% if current %}
   <p>Текущая категория:

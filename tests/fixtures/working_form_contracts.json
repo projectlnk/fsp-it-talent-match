@@ -129,9 +129,7 @@
           "maxlength": "100"
         },
         {
-          "name": "level",
-          "type": "text",
-          "maxlength": "50"
+          "name": "level"
         }
       ]
     },

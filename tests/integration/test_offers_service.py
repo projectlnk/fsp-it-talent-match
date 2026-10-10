@@ -16,6 +16,7 @@ from app.modules.auth.models import User, UserRole
 from app.modules.auth.service import register_user
 from app.modules.candidates.models import CandidateProfile
 from app.modules.candidates.service import update_profile
+from app.modules.matching.service import set_publication
 from app.modules.employers.schemas import OfferCreate
 from app.modules.employers.service import (
     CandidateNotFound,
@@ -62,6 +63,7 @@ def _make_candidate(session, phone: str = "+7 999 111-22-33") -> CandidateProfil
         full_name="Test Candidate",
     )
     update_profile(session, user_id=user.id, changes={"phone": phone})
+    set_publication(session, user.id, True)
     return session.scalar(
         select(CandidateProfile).where(CandidateProfile.user_id == user.id)
     )

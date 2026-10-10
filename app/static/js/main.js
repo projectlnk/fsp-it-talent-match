@@ -1,6 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
   const status = document.getElementById("js-status");
   if (status) status.textContent = "JavaScript работает";
+  const visibilityForm = document.querySelector('#visibility .visibility-form');
+  if (visibilityForm) {
+    const checkbox = visibilityForm.querySelector('[name="published"]');
+    const message = document.querySelector('[data-visibility-status]');
+    checkbox.addEventListener('change', async () => {
+      const value = checkbox.checked;
+      const payload = new FormData(visibilityForm);
+      checkbox.disabled = true;
+      message.textContent = 'Сохраняется…';
+      try {
+        const response = await fetch(visibilityForm.action, {method: 'POST', body: payload});
+        if (!response.ok || new URL(response.url).searchParams.get('saved') !== '1') throw new Error('Save failed');
+        checkbox.disabled = false;
+        document.dispatchEvent(new CustomEvent('fspcareer:form-saved', {detail: visibilityForm}));
+        message.textContent = 'Сохранено';
+        const indicator = document.querySelector('[data-profile-visibility-indicator]');
+        if (indicator) indicator.textContent = value ? 'Профиль доступен работодателям при подтверждённой категории' : 'Профиль скрыт от работодателей';
+      } catch {
+        checkbox.checked = !value;
+        message.textContent = 'Не удалось сохранить. Обновите страницу и повторите.';
+      } finally {
+        checkbox.disabled = false;
+      }
+    });
+  }
   // Prototype interactions are intentionally scoped to /design-preview.
   if (!/^\/design-preview(?:\/|$)/.test(location.pathname)) return;
   const key = "fsp-design-preview:";

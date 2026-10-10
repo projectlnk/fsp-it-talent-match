@@ -60,15 +60,7 @@ def detail(request: Request, candidate_id: int, user: User = Depends(EMPLOYER_ON
 
 @router.get('/candidate/search-publication')
 def publication(request: Request, user: User = Depends(CANDIDATE_ONLY), session: Session = Depends(get_session)):
-    try:
-        is_searchable = service.get_publication(session, user.id)
-    except service.CandidateNotFound as exc:
-        raise HTTPException(404, 'Профиль не найден') from exc
-    response = templates.TemplateResponse(request=request, name='matching/publication.html',
-        context={'user': user, 'is_searchable': is_searchable,
-                 'csrf_token': csrf_token(user.id)})
-    response.headers['Cache-Control'] = 'no-store'
-    return response
+    return RedirectResponse('/candidate/profile#visibility', status_code=303)
 
 @router.post('/candidate/search-publication')
 def save_publication(request: Request, published: Literal['', 'yes'] = Form(''), token: str = Form(''),
@@ -78,4 +70,4 @@ def save_publication(request: Request, published: Literal['', 'yes'] = Form(''),
         service.set_publication(session, user.id, published == 'yes')
     except service.CandidateNotFound as exc:
         raise HTTPException(404, 'Профиль не найден') from exc
-    return RedirectResponse('/candidate/search-publication?saved=1', status_code=303)
+    return RedirectResponse('/candidate/profile?saved=1#visibility', status_code=303)
