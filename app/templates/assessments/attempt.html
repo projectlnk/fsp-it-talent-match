@@ -7,10 +7,12 @@
   <p class="question-text">{{ current.text }}</p>
   <form method="post" action="/assessments/attempt/{{ attempt.id }}/answer" class="form">
     <input type="hidden" name="answer_id" value="{{ current.answer_id }}">
+    <input type="hidden" name="answer_kind" value="{{ current.type }}">
     <div class="options">
+      {% if current.type in ['text','code'] %}<label>Ответ<textarea name="value" required maxlength="10000"></textarea></label>{% endif %}
       {% for opt in current.options %}
         <label class="option">
-          <input type="radio" name="value" value="{{ opt }}" required>
+          <input type="{{ 'checkbox' if current.type == 'multiple_choice' else 'radio' }}" name="{{ 'values' if current.type == 'multiple_choice' else 'value' }}" value="{{ opt }}" {% if current.type != 'multiple_choice' %}required{% endif %}>
           <span>{{ opt }}</span>
         </label>
       {% endfor %}

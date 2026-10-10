@@ -56,6 +56,8 @@ def _render_profile(
     current = assessment_service.current_category(session, user_id=user.id)
     category = session.get(Category, current.category_id) if current else None
     current_grade = session.get(Grade, category.grade_id) if category else None
+    from app.modules.career.models import PrivacyConsent
+    processing_consent = session.scalar(select(PrivacyConsent).where(PrivacyConsent.user_id == user.id, PrivacyConsent.kind == 'processing'))
     return templates.TemplateResponse(
         request=request,
         name="candidates/profile.html",
@@ -66,6 +68,7 @@ def _render_profile(
             "grades": list(session.scalars(select(Grade).where(Grade.code.in_(GRADE_LABELS)).order_by(Grade.order))),
             "grade_labels": GRADE_LABELS,
             "current_grade": current_grade,
+            "processing_consent": bool(processing_consent and processing_consent.accepted),
             "specializations": list(session.scalars(select(Specialization).order_by(Specialization.id))),
             "csrf_token": csrf_token(user.id),
             "error": error,

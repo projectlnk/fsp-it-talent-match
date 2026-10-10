@@ -259,6 +259,8 @@ def attempt_answer(
     attempt_id: int,
     answer_id: int = Form(...),
     value: str = Form(""),
+    values: list[str] = Form([]),
+    answer_kind: str = Form("single_choice"),
     user: User = Depends(_CANDIDATE_ONLY),
     session: Session = Depends(get_session),
 ):
@@ -268,7 +270,7 @@ def attempt_answer(
             user_id=user.id,
             attempt_id=attempt_id,
             answer_id=answer_id,
-            answer_payload={"value": value} if value else {},
+            answer_payload={"values": values} if answer_kind == 'multiple_choice' else {"value": value},
         )
     except service.AssessmentError:
         pass  # редирект покажет актуальное состояние

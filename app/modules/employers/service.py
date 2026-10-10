@@ -124,6 +124,9 @@ def _to_offer_read(
 
     contacts = None
     if reveal_contacts and candidate_profile is not None:
+        from app.modules.career.service import contact_allowed
+        reveal_contacts = contact_allowed(session, candidate_profile.id)
+    if reveal_contacts and candidate_profile is not None:
         candidate_user = candidate_profile.user if hasattr(candidate_profile, "user") else None
         # email пользователя достаём через сессию, чтобы не зависеть от relationship
         from app.modules.auth.models import User

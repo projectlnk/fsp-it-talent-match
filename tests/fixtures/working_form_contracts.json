@@ -52,6 +52,12 @@
           "type": "text",
           "value": "{{ full_name }}",
           "maxlength": "255"
+        },
+        {
+          "name": "processing_consent",
+          "type": "checkbox",
+          "value": "yes",
+          "required": null
         }
       ]
     }
@@ -242,10 +248,19 @@
           "value": "{{ current.answer_id }}"
         },
         {
+          "name": "answer_kind",
+          "type": "hidden",
+          "value": "{{ current.type }}"
+        },
+        {
           "name": "value",
-          "type": "radio",
-          "value": "{{ opt }}",
-          "required": null
+          "required": null,
+          "maxlength": "10000"
+        },
+        {
+          "name": "{{ 'values' if current.type == 'multiple_choice' else 'value' }}",
+          "type": "{{ 'checkbox' if current.type == 'multiple_choice' else 'radio' }}",
+          "value": "{{ opt }}"
         }
       ]
     }

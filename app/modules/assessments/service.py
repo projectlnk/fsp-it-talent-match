@@ -110,6 +110,26 @@ def _get_grade(session: Session, code: str) -> Grade:
 
 # --- Старт попытки ---------------------------------------------------------
 
+def structured_sample(pool, count, rng):
+    """Stable topic/type/difficulty quotas; random items within each bucket."""
+    buckets = {}
+    for question in sorted(pool, key=lambda q:q.id):
+        key = (question.topic or '', question.type.value, question.difficulty)
+        buckets.setdefault(key, []).append(question)
+    for bucket in buckets.values():
+        rng.shuffle(bucket)
+    chosen = []
+    while len(chosen) < count:
+        for key in sorted(buckets):
+            if buckets[key]:
+                chosen.append(buckets[key].pop())
+                if len(chosen) == count:
+                    break
+        if not any(buckets.values()) and len(chosen) < count:
+            raise NotEnoughQuestions('Недостаточно вопросов для структуры попытки')
+    rng.shuffle(chosen)
+    return chosen
+
 
 def start_attempt(
     session: Session,
@@ -168,7 +188,7 @@ def start_attempt(
 
     # 3. Случайная выборка без повторов
     rng = random.Random()
-    chosen = rng.sample(pool, QUESTIONS_PER_ATTEMPT)
+    chosen = structured_sample(pool, QUESTIONS_PER_ATTEMPT, rng)
 
     # 4. Создаём попытку
     attempt = TestAttempt(
@@ -294,6 +314,10 @@ def submit_answer(
         valid = set(answer_payload) == {"value"} and isinstance(answer_payload.get("value"), str)
     if not valid:
         raise InvalidAnswer("Выберите ответ из предложенных вариантов")
+    if answer.answered_at is not None:
+        if answer.answer == answer_payload:
+            return answer
+        raise InvalidAnswer("Ответ уже сохранён; изменить его нельзя")
     answer.answer = answer_payload
     answer.is_correct = is_correct(snapshot, answer_payload)
     answer.answered_at = datetime.now(UTC)
@@ -375,20 +399,22 @@ def _apply_category(
     confirmed_at: datetime | None,
     test_score: int | None = None,
 ) -> CandidateCategory:
-    """Создаёт новую запись CandidateCategory и снимает флаг is_current
-    с предыдущей.
+    """Создаёт историю; провал не заменяет подтверждённую текущую категорию.
 
     История сохраняется: старые записи остаются в БД.
     """
-    # Снимаем is_current со всех предыдущих записей этого кандидата
-    session.execute(
-        update(CandidateCategory)
-        .where(
-            CandidateCategory.candidate_profile_id == candidate_profile_id,
-            CandidateCategory.is_current.is_(True),
+    confirmed = session.scalar(select(CandidateCategory.id).where(
+        CandidateCategory.candidate_profile_id == candidate_profile_id,
+        CandidateCategory.is_current.is_(True), CandidateCategory.status == CategoryStatus.CONFIRMED))
+    becomes_current = passed or confirmed is None
+    # Failed voluntary verification stays in history without replacing confirmed category.
+    if becomes_current:
+        session.execute(
+            update(CandidateCategory).where(
+                CandidateCategory.candidate_profile_id == candidate_profile_id,
+                CandidateCategory.is_current.is_(True),
+            ).values(is_current=False)
         )
-        .values(is_current=False)
-    )
 
     category = session.scalar(
         select(Category).where(
@@ -406,7 +432,7 @@ def _apply_category(
         candidate_profile_id=candidate_profile_id,
         category_id=category.id,
         status=CategoryStatus.CONFIRMED if passed else CategoryStatus.NOT_CONFIRMED,
-        is_current=True,
+        is_current=becomes_current,
         test_score=test_score,
         confirmed_at=confirmed_at,
     )

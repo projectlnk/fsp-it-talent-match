@@ -405,3 +405,4 @@ body{background:white}
 }
 
 #matching-results .card,.matching-text{overflow-wrap:anywhere} .matching-text{white-space:pre-wrap} .matching-pagination{flex-wrap:wrap} #matching-results .tag-row{flex-wrap:wrap}
+.career-page > .card{margin-bottom:24px}.consent-settings{margin:12px 0 20px}

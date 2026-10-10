@@ -89,11 +89,21 @@ def reference_filters(session):
 
 
 def set_publication(session, user_id, is_searchable):
+    from app.modules.career.service import consent, require_processing
+    from app.modules.auth.models import User
+    if is_searchable:
+        user = session.get(User, user_id)
+        if not user or not user.is_email_verified:
+            from fastapi import HTTPException
+            raise HTTPException(403, 'Сначала подтвердите email')
+        require_processing(session, user_id)
+    session.scalar(select(User).where(User.id == user_id).with_for_update())
     profile = session.scalar(select(CandidateProfile).where(CandidateProfile.user_id == user_id)
                              .with_for_update().execution_options(populate_existing=True))
     if profile is None:
         raise CandidateNotFound('Профиль не найден')
     profile.is_searchable = is_searchable
+    consent(session, user_id, 'publication', is_searchable)
     session.commit()
     return profile.is_searchable
 

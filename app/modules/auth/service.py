@@ -57,6 +57,7 @@ def register_user(
     password: str,
     role: UserRole,
     full_name: str | None = None,
+    processing_consent: bool = False,
 ) -> User:
     """Регистрирует пользователя и создаёт профиль по его роли.
 
@@ -89,6 +90,9 @@ def register_user(
         session.add(EmployerProfile(user_id=user.id, company_name=full_name or ""))
 
     token = _create_verification_token(session, user)
+    if processing_consent:
+        from app.modules.career.service import consent
+        consent(session, user.id, 'processing', True)
 
     try:
         session.commit()

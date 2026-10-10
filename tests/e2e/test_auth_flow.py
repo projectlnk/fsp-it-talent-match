@@ -26,8 +26,9 @@ def _register_via_form(page, base: str, email: str) -> None:
     page.fill('input[name="password"]', "test1234")
     page.select_option('select[name="role"]', "candidate")
     page.fill('input[name="full_name"]', "E2E Test")
+    page.check('input[name="processing_consent"]')
     page.click('button[type="submit"]')
-    page.wait_for_url(f"{base}/auth/check-email")
+    page.wait_for_url(f"{base}/auth/check-email*")
 
 
 def _login_via_form(page, base: str, email: str) -> None:
@@ -75,6 +76,7 @@ def test_register_duplicate_shows_error(page, app_base_url):
     page.fill('input[name="email"]', email)
     page.fill('input[name="password"]', "other1234")
     page.select_option('select[name="role"]', "candidate")
+    page.check('input[name="processing_consent"]')
     page.click('button[type="submit"]')
     expect(page.locator(".alert-error")).to_contain_text("уже зарегистрирован")
 

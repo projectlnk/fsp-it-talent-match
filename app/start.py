@@ -26,6 +26,8 @@ def main():
         if session.scalar(select(Question.id).limit(1)) is None:
             load_all_seeds(session)
     print("Alembic migrations applied; starting Uvicorn", flush=True)
+    from app.scripts.process_events import start_worker
+    start_worker()
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=get_settings().reload)
 
 if __name__ == "__main__":

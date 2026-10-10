@@ -33,10 +33,16 @@ def test_fresh_migrations_and_repeat_upgrade(migration_database):
     engine,upgrade=migration_database
     upgrade('head');upgrade('head')
     with engine.connect() as conn:
-        assert conn.scalar(text('SELECT version_num FROM alembic_version'))=='c91d2048a630'
+        assert conn.scalar(text('SELECT version_num FROM alembic_version'))=='d42e910career'
         assert conn.scalar(text("SELECT column_default FROM information_schema.columns WHERE table_name='test_answers' AND column_name='answered_at'")) is None
         column=conn.execute(text("SELECT is_nullable, column_default FROM information_schema.columns WHERE table_name='candidate_profiles' AND column_name='is_searchable'")).one()
         assert column.is_nullable=='NO' and 'false' in column.column_default
+    from alembic.autogenerate import compare_metadata
+    from alembic.migration import MigrationContext
+    from app.db.base import Base
+    import app.db.models
+    with engine.connect() as conn:
+        assert compare_metadata(MigrationContext.configure(conn,opts={'compare_server_default':True}),Base.metadata)==[]
 
 def test_publication_migration_preserves_filled_profiles_and_answers(migration_database):
     engine,upgrade=migration_database

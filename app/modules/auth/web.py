@@ -36,7 +36,7 @@ def register_form(
     return templates.TemplateResponse(
         request=request,
         name="auth/register.html",
-        context={"user": None, "error": None, "email": "", "role": "candidate", "full_name": ""},
+        context={"user": None, "error": None, "email": "", "role": "employer" if request.query_params.get('role')=='employer' else "candidate", "full_name": ""},
     )
 
 
@@ -47,12 +47,13 @@ def register_submit(
     password: str = Form(...),
     role: str = Form(...),
     full_name: str = Form(""),
+    processing_consent: str = Form(""),
     session: Session = Depends(get_session),
 ):
     error: str | None = None
     try:
         payload = UserRegister(email=email, password=password, role=role,
-                               full_name=full_name or None)
+                               full_name=full_name or None, processing_consent=processing_consent == 'yes')
         service.register_user(session, **payload.model_dump())
         return RedirectResponse("/auth/check-email?registered=" + payload.role.value, status_code=status.HTTP_303_SEE_OTHER)
     except service.VerificationEmailDeliveryError:
