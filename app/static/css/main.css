@@ -55,14 +55,15 @@ small,.muted{color:var(--muted)}
 
 .public-shell{max-width:1280px;margin:auto;padding:0 32px}
 .public-shell>main{padding:44px 0 64px;min-width:0}
-.hero{display:grid;grid-template-columns:1.15fr 1fr;gap:64px;align-items:center;padding:36px 0 70px}
-.hero h1{font-size:clamp(42px,5vw,72px);letter-spacing:-.07em;line-height:1.12;margin-bottom:24px}
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:64px;align-items:start;padding:36px 0 70px}
+.hero h1{font-size:clamp(32px,4vw,48px);letter-spacing:-.055em;line-height:1.12;margin-bottom:24px}
 .hero h1 span{color:var(--purple)}
+.hero h1 .hero-specialists{white-space:nowrap;color:inherit}
 .hero-description{color:var(--muted);font-size:17px;max-width:540px;line-height:1.8}
 .hero .actions{margin-top:28px}
 .hero-footnote{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:25px}
 .live-dot{display:inline-block;width:7px;height:7px;background:var(--purple);border-radius:50%;margin-right:7px}
-.hero-visual{height:420px;background:var(--purple);color:white;position:relative;overflow:hidden;padding:30px;border-radius:4px}
+.hero-visual{display:flex;flex-direction:column;min-height:420px;height:auto;background:var(--purple);color:white;position:relative;overflow:hidden;padding:30px;border-radius:4px}
 .visual-grid{position:absolute;inset:0;background:linear-gradient(90deg,transparent 49.7%,#ffffff1a 50%,transparent 50.3%),linear-gradient(transparent 49.7%,#ffffff1a 50%,transparent 50.3%);background-size:70px 70px;transform:rotate(-16deg) scale(1.8)}
 .hero-visual:after{content:'';position:absolute;width:270px;height:270px;right:-130px;top:30px;border:1px solid #ffffff70;transform:rotate(45deg);box-shadow:0 0 0 25px #ffffff0c,0 0 0 50px #ffffff0c}
 .visual-top{position:relative;display:flex;justify-content:space-between;font-size:10px;letter-spacing:.04em}
@@ -71,7 +72,7 @@ small,.muted{color:var(--muted)}
 .visual-path span{font-family:var(--mono);font-size:22px}
 .visual-path small{font:11px system-ui;color:#ddd9ff}
 .visual-path i{height:1px;flex:1;background:#b9b1ff}
-.visual-bottom{position:absolute;bottom:25px;left:30px;right:30px;display:flex;justify-content:space-between;gap:16px;font-size:10px;color:#ddd9ff;align-items:center}
+.visual-bottom{position:relative;margin-top:auto;padding-top:24px;display:flex;justify-content:space-between;gap:16px;font-size:10px;color:#ddd9ff;align-items:center}
 .visual-bottom .mono{letter-spacing:.1em}
 .section-heading{margin-bottom:26px}
 .grid-two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -318,10 +319,10 @@ code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 12p
 .public-shell{padding:0 20px}
 .public-shell>main{padding-top:24px}
 .hero{grid-template-columns:1fr;padding:15px 0 40px;gap:24px}
-.hero-visual{height:320px}
+.hero-visual{min-height:320px}
 .visual-title{margin-top:32px;font-size:29px}
 .hero-description{font-size:15px}
-.hero h1{font-size:51px}
+.hero h1{font-size:clamp(32px,5vw,44px)}
 .grid-two{gap:16px}
 .role-card{padding:24px}
 .role-card h3{font-size:21px}
@@ -359,10 +360,9 @@ h2{font-size:23px}
 .topnav{margin-left:0;width:100%;order:3;justify-content:space-between;font-size:12px;gap:8px}
 .topnav .button{padding:9px 12px;font-size:11px}
 .tricolor{order:2}
-.hero h1{font-size:44px}
+.hero h1{font-size:32px}
 .hero-visual{padding:23px}
 .visual-top{font-size:8px}
-.visual-bottom{left:23px;right:23px}
 .hero .actions{display:grid}
 .hero .actions .button{width:100%}
 .grid-two,.principles,.form-row,.screen-index{grid-template-columns:1fr}
@@ -408,11 +408,13 @@ body{background:white}
 .career-page > .card{margin-bottom:24px}.consent-settings{margin:12px 0 20px}
 
 /* Longer official headings and the resume confirmation use existing spacing. */
-.hero h1,.registration-layout h1{overflow-wrap:anywhere}
+.registration-layout h1{overflow-wrap:anywhere}
+.hero h1{overflow-wrap:normal;text-wrap:balance}
 .hero-visual .visual-title{font-size:clamp(24px,2.3vw,32px);margin-top:32px;max-width:100%;overflow-wrap:anywhere}
 .hero-visual .visual-bottom>span:last-child{max-width:48%}
 .employer-profile-tabs{gap:24px}
 .resume-dialog{width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;color:var(--ink)}
 .resume-dialog::backdrop{background:rgba(20,18,40,.45)}
 .resume-dialog p{margin:16px 0 24px}
-@media(max-width:500px){.hero h1{font-size:32px}}
+
+@media(max-width:360px){.hero h1{font-size:28px}}
