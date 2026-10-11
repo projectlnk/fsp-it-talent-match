@@ -26,6 +26,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  const resumeDialog = document.querySelector('[data-resume-dialog]');
+  const resumeOpen = document.querySelector('[data-resume-open]');
+  if (resumeDialog && resumeOpen) {
+    let resumeTrigger = resumeOpen;
+    document.querySelectorAll('[data-resume-open]').forEach(trigger => {
+      trigger.addEventListener('click', event => {
+        event.preventDefault();
+        resumeTrigger = trigger;
+        resumeDialog.showModal();
+      });
+    });
+    resumeDialog.querySelector('[data-resume-cancel]').addEventListener('click', () => resumeDialog.close());
+    resumeDialog.querySelector('[data-resume-confirm]').addEventListener('click', () => resumeDialog.close());
+    resumeDialog.addEventListener('close', () => resumeTrigger.focus());
+  }
   // Prototype interactions are intentionally scoped to /design-preview.
   if (!/^\/design-preview(?:\/|$)/.test(location.pathname)) return;
   const key = "fsp-design-preview:";

@@ -9,7 +9,7 @@
     ({{ 'подтверждён' if current.status == 'confirmed' else 'не подтверждён' }})
   </div>
 {% else %}
-  <div class="alert">Вы ещё не проходили тестирование.</div>
+  <div class="alert">вы ещё не проходили тестирование.</div>
 {% endif %}
 
 {% if cooldown.active %}

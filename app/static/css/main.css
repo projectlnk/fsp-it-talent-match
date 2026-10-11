@@ -406,3 +406,13 @@ body{background:white}
 
 #matching-results .card,.matching-text{overflow-wrap:anywhere} .matching-text{white-space:pre-wrap} .matching-pagination{flex-wrap:wrap} #matching-results .tag-row{flex-wrap:wrap}
 .career-page > .card{margin-bottom:24px}.consent-settings{margin:12px 0 20px}
+
+/* Longer official headings and the resume confirmation use existing spacing. */
+.hero h1,.registration-layout h1{overflow-wrap:anywhere}
+.hero-visual .visual-title{font-size:clamp(24px,2.3vw,32px);margin-top:32px;max-width:100%;overflow-wrap:anywhere}
+.hero-visual .visual-bottom>span:last-child{max-width:48%}
+.employer-profile-tabs{gap:24px}
+.resume-dialog{width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;color:var(--ink)}
+.resume-dialog::backdrop{background:rgba(20,18,40,.45)}
+.resume-dialog p{margin:16px 0 24px}
+@media(max-width:500px){.hero h1{font-size:32px}}
