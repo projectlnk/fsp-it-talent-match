@@ -22,7 +22,12 @@ async def page_error(request: Request, exc: HTTPException):
         from fastapi.responses import RedirectResponse
         return RedirectResponse('/auth/session-refresh', status_code=303, headers={'Cache-Control':'no-store'})
     if request.url.path.startswith(('/career', '/design-preview')):
-        return templates.TemplateResponse(request=request, name='career/error.html',
-            context={'user':None,'error':exc.detail}, status_code=exc.status_code,
-            headers={'Cache-Control':'no-store'})
+        # An action denial must not look like logout to the session synchronizer.
+        from app.db.session import SessionLocal
+        from app.modules.auth.dependencies import get_current_user_optional
+        with SessionLocal() as session:
+            user = get_current_user_optional(request, credentials=None, session=session)
+            return templates.TemplateResponse(request=request, name='career/error.html',
+                context={'user':user,'error':exc.detail}, status_code=exc.status_code,
+                headers={'Cache-Control':'no-store'})
     return await http_exception_handler(request, exc)

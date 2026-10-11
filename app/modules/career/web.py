@@ -205,7 +205,7 @@ async def decision(request: Request, aid: int, user: User = Depends(verified), d
 
 
 @router.get('/leaderboard')
-def leaderboard(request: Request, user: User = Depends(verified), db: Session = Depends(get_session)):
+def leaderboard(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     s.process_due(db)
     rows = s.leaderboard(db)
     db.commit()
