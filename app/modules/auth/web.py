@@ -3,17 +3,18 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Form, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, Request, status, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 from app.modules.auth.schemas import UserRegister
 
 from app.db.session import get_session
 from app.modules.auth import service
-from app.modules.auth.dependencies import COOKIE_NAME, get_current_user, get_current_user_optional
+from app.modules.auth.dependencies import COOKIE_NAME, get_current_user, get_current_user_optional, workspace_home
 from app.modules.auth.models import User, UserRole
 from app.web.templates import templates
+from app.modules.matching.publication import csrf_token, check_csrf
 
 router = APIRouter(prefix="/auth", tags=["auth-web"], include_in_schema=False)
 
@@ -36,7 +37,7 @@ def register_form(
     return templates.TemplateResponse(
         request=request,
         name="auth/register.html",
-        context={"user": None, "error": None, "email": "", "role": "candidate", "full_name": ""},
+        context={"user": None, "error": None, "email": "", "role": "employer" if request.query_params.get('role')=='employer' else "candidate", "full_name": ""},
     )
 
 
@@ -47,12 +48,13 @@ def register_submit(
     password: str = Form(...),
     role: str = Form(...),
     full_name: str = Form(""),
+    processing_consent: str = Form(""),
     session: Session = Depends(get_session),
 ):
     error: str | None = None
     try:
         payload = UserRegister(email=email, password=password, role=role,
-                               full_name=full_name or None)
+                               full_name=full_name or None, processing_consent=processing_consent == 'yes')
         service.register_user(session, **payload.model_dump())
         return RedirectResponse("/auth/check-email?registered=" + payload.role.value, status_code=status.HTTP_303_SEE_OTHER)
     except service.VerificationEmailDeliveryError:
@@ -84,11 +86,27 @@ def login_form(
     user: User | None = Depends(get_current_user_optional),
 ):
     if user is not None:
+        selected = request.query_params.get('role')
+        if selected in ('candidate', 'employer') and selected != user.role.value:
+            return templates.TemplateResponse(request=request, name='auth/switch_role.html',
+                context={'user': user, 'public_page': True, 'switch_role': selected,
+                         'csrf_token': csrf_token(user.id)}, headers={'Cache-Control': 'no-store'})
         return RedirectResponse(_safe_next(next), status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
         request=request,
         name="auth/login.html",
-        context={"user": None, "error": None, "email": "", "next": _safe_next(next)},
+        context={"user": None, "error": None, "email": "", "next": _safe_next(next),
+                 "role": "employer" if request.query_params.get("role") == "employer" else "candidate"},
+    )
+
+
+def _login_error(request: Request, email: str, next: str, role: str, message: str, code: int):
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/login.html",
+        context={"user": None, "error": message, "email": email, "next": _safe_next(next),
+                 "role": role if role in ("candidate", "employer") else "candidate"},
+        status_code=code,
     )
 
 
@@ -98,25 +116,28 @@ def login_submit(
     email: str = Form(...),
     password: str = Form(...),
     next: str = Form("/"),
+    role: str = Form(""),
     session: Session = Depends(get_session),
 ):
+    # Role is a login choice, never a source of authorization or an account update.
+    # Omitted role remains valid for existing clients and saved forms.
+    if role not in ("", "candidate", "employer"):
+        return _login_error(request, email, next, role, "Выберите роль кандидата или работодателя", 400)
     try:
         user = service.authenticate_user(session, email=email, password=password)
     except service.InvalidCredentials:
-        return templates.TemplateResponse(
-            request=request,
-            name="auth/login.html",
-            context={
-                "user": None,
-                "error": "Неверный email или пароль",
-                "email": email,
-                "next": _safe_next(next),
-            },
-            status_code=status.HTTP_401_UNAUTHORIZED,
-        )
+        return _login_error(request, email, next, role, "Неверный email или пароль", 401)
+
+    if role and user.role.value != role:
+        label = "Кандидат" if user.role == UserRole.CANDIDATE else "Работодатель"
+        return _login_error(request, email, next, role,
+                            f"Выбранная роль не соответствует аккаунту. Выберите «{label}».", 400)
 
     token, expires_in = service.issue_access_token(user)
-    response = RedirectResponse(_safe_next(next), status_code=status.HTTP_303_SEE_OTHER)
+    destination = _safe_next(next)
+    if destination == "/":
+        destination = workspace_home(user)
+    response = RedirectResponse(destination, status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
@@ -129,12 +150,27 @@ def login_submit(
     return response
 
 
-@router.post("/logout")
-def logout(request: Request) -> RedirectResponse:
-    response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+def _logout_response(request: Request, destination: str) -> RedirectResponse:
+    response = RedirectResponse(destination, status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(COOKIE_NAME)
     response.set_cookie("fspcareer_auth_change", uuid.uuid4().hex, max_age=60, samesite="lax", secure=request.url.scheme == "https")
     return response
+
+
+@router.post("/logout")
+def logout(request: Request) -> RedirectResponse:
+    return _logout_response(request, "/")
+
+
+@router.post('/switch-role')
+def switch_role(request: Request, role: str = Form(...), token: str = Form(''),
+                user: User = Depends(get_current_user)):
+    check_csrf(request, user.id, token)
+    if role not in ('candidate', 'employer'):
+        raise HTTPException(422, 'Выберите роль кандидата или работодателя')
+    if user.role.value == role:
+        return RedirectResponse(workspace_home(user), status_code=303)
+    return _logout_response(request, '/auth/login?role=' + role)
 
 
 @router.get("/check-email", response_class=HTMLResponse)
@@ -181,3 +217,16 @@ def resend_verification_page(request: Request, user: User = Depends(get_current_
         error = "Письмо не отправлено. Попробуйте повторить позже."
     return templates.TemplateResponse(request=request, name="auth/check_email.html",
         context={"user": user, "error": error}, status_code=503 if error else 200)
+
+
+@router.get('/session-state', include_in_schema=False)
+def session_state(user: User | None = Depends(get_current_user_optional)):
+    return JSONResponse({'user_id':user.id if user else None}, headers={'Cache-Control':'no-store'})
+
+
+@router.get('/session-refresh', include_in_schema=False)
+def session_refresh(user: User | None = Depends(get_current_user_optional)):
+    response = RedirectResponse(workspace_home(user), status_code=303, headers={'Cache-Control':'no-store'})
+    if user is None:
+        response.delete_cookie(COOKIE_NAME)
+    return response

@@ -15,6 +15,7 @@ from app.modules.auth.models import User, UserRole
 from app.modules.auth.security import create_access_token
 from app.modules.candidates.models import CandidateProfile, CandidateSkill, CandidateExperience, FspAchievement, FspRegistryLink, WorkFormat
 from app.modules.assessments.models import Specialization, Grade, Category, CandidateCategory, CategoryStatus, TestAttempt, AttemptStatus
+from app.modules.career.models import PrivacyConsent
 
 @pytest.fixture
 def database():
@@ -39,7 +40,7 @@ def database():
         def foreign_keys(connection,record):
             connection.execute('PRAGMA foreign_keys=ON')
             connection.create_function('lower',1,lambda value: value.lower() if value is not None else None)
-        for model in [User,CandidateProfile,CandidateSkill,CandidateExperience,FspAchievement,FspRegistryLink,Specialization,Grade,Category,CandidateCategory,TestAttempt]:
+        for model in [User,CandidateProfile,CandidateSkill,CandidateExperience,FspAchievement,FspRegistryLink,Specialization,Grade,Category,CandidateCategory,TestAttempt,PrivacyConsent]:
             model.__table__.create(engine)
     with Session(engine,expire_on_commit=False) as s:
         employer=User(email='employer@example.invalid',password_hash='unused',role=UserRole.EMPLOYER);s.add(employer)
@@ -49,7 +50,8 @@ def database():
         cat=Category(specialization_id=backend.id,grade_id=middle.id);other=Category(specialization_id=frontend.id,grade_id=junior.id)
         s.add_all([cat,other]);s.flush();profiles=[];users=[]
         for i in range(9):
-            u=User(email=f'candidate-secret-{i}@example.invalid',password_hash='unused',role=UserRole.CANDIDATE,is_active=i!=6);s.add(u);s.flush();users.append(u)
+            u=User(email=f'candidate-secret-{i}@example.invalid',password_hash='unused',role=UserRole.CANDIDATE,is_active=i!=6,is_email_verified=True);s.add(u);s.flush();users.append(u)
+            s.add(PrivacyConsent(user_id=u.id,kind='processing',accepted=True,recorded_at=datetime.now(UTC)))
             p=CandidateProfile(user_id=u.id,full_name='Алексей' if i<3 else f'Профиль {i}',phone='+7 (999) 123-45-67',
                 about='API. secret-contact@example.invalid +7 (999) 123-45-67 https://t.me/secret_handle @secret_handle',
                 location='Москва' if i!=3 else 'Казань',work_format=WorkFormat.REMOTE if i!=3 else WorkFormat.HYBRID,is_searchable=i!=4)

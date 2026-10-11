@@ -22,6 +22,8 @@ def test_two_tab_auth(browser, matching_server, database, fallback):
         first.locator('[name=email]').fill(database[1]['candidate'].email)
         first.locator('[name=password]').fill('test1234')
         first.locator('button[type=submit]').click()
+        expect(second.locator('#auth-sync-notice')).to_be_visible()
+        second.locator('[data-session-refresh]').click()
         expect(second.locator('.account-email')).to_have_text(database[1]['candidate'].email)
         second.goto(matching_server + '/candidate/profile')
         second.locator('[name=about]').fill('Unsaved draft')
@@ -34,7 +36,7 @@ def test_two_tab_auth(browser, matching_server, database, fallback):
         second.once('dialog', lambda dialog: dialog.accept())
         second.locator('#auth-sync-notice button').click()
         expect(second.locator('[name=about]')).to_have_count(0)
-        # Login again, then clean-tab logout must update automatically.
+        # A clean tab also keeps the stale page under the modal until refresh.
         first.goto(matching_server + '/auth/login')
         first.locator('[name=email]').fill(database[1]['candidate'].email)
         first.locator('[name=password]').fill('test1234')
@@ -42,6 +44,8 @@ def test_two_tab_auth(browser, matching_server, database, fallback):
         second.goto(matching_server + '/')
         expect(second.locator('.account-email')).to_be_visible()
         first.locator('form[action="/auth/logout"] button').click()
+        expect(second.locator('#auth-sync-notice')).to_be_visible()
+        second.locator('[data-session-refresh]').click()
         expect(second.locator('.account-email')).to_have_count(0)
     finally:
         context.close()

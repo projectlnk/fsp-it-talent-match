@@ -1,0 +1,12 @@
+{% from 'components/icons.html' import icon %}
+{% set path = request.url.path %}
+{% set is_need = request.query_params.get('kind') == 'need' or (item is defined and item and item.kind == 'need') %}
+{% set section = 'profile' %}
+{% if path.startswith('/employer/search') or path.startswith('/employer/candidates') %}{% set section = 'search' %}
+{% elif path.startswith('/employer/team-needs') or (path.startswith('/career/opportunities') and is_need) %}{% set section = 'needs' %}
+{% elif path.startswith('/career/opportunities') or path.startswith('/career/applications') or path.startswith('/career/applicants') %}{% set section = 'vacancies' %}
+{% elif path.startswith('/career/leaderboard') %}{% set section = 'leaderboard' %}
+{% elif path.startswith('/career/connections') or path.startswith('/career/threads') or path.startswith('/career/meetings') or path.startswith('/employer/offers') %}{% set section = 'connections' %}{% endif %}
+{% for key,href,label in [('profile','/employer/profile','Профиль компании'),('vacancies','/career/opportunities','Мои вакансии'),('needs','/employer/team-needs','Потребность команды'),('search','/employer/search','Поиск кандидатов'),('leaderboard','/career/leaderboard','Лидерборд'),('connections','/career/connections','Связь')] %}
+<a href="{{ href }}" {% if section == key %}class="active" aria-current="page"{% endif %}>{{ icon('employers' if key == 'profile' else key) }}{{ label }}{% if key == 'connections' %}<span class="message-badge" data-message-badge hidden aria-label="Новые сообщения"></span>{% endif %}</a>
+{% endfor %}

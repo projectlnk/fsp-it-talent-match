@@ -1,0 +1,1 @@
+{% extends 'career/base.html' %}{% block career_content %}{% if user and user.role.value == 'employer' %}{% include 'career/_employer_opportunities.html' %}{% else %}{% include 'career/_candidate_opportunities.html' %}{% endif %}{% endblock %}

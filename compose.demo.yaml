@@ -1,0 +1,45 @@
+# Explicit standalone stack: never combine with ordinary compose.yaml.
+services:
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://demo:demo-local-only@db:5432/fspcareer_demo
+      JWT_SECRET_KEY: ${DEMO_JWT_SECRET:?Generate a separate demo session signing secret}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      APP_BASE_URL: ${DEMO_APP_BASE_URL:-http://localhost:8002}
+      FSP_BASE_URL: http://mini-fsp-id:8000
+      DEMO_MODE: 'true'
+      DEMO_OPERATOR_IDS: ${DEMO_OPERATOR_IDS:-}
+      DEMO_MOCK_KEY: ${DEMO_MOCK_KEY:?Set a separate demo mock management key}
+    ports: ['127.0.0.1:8002:8000']
+    volumes: ['./app:/workspace/app', './migrations:/workspace/migrations']
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fspcareer_demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo-local-only
+    volumes: ['demo_postgres:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U demo -d fspcareer_demo']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  mini-fsp-id:
+    build: .
+    command: ['uvicorn','mock_fsp.main:app','--host','0.0.0.0','--port','8000']
+    environment:
+      MOCK_DEMO_MODE: 'true'
+      DEMO_MOCK_KEY: ${DEMO_MOCK_KEY}
+      MOCK_STORAGE_PATH: /data/registry.sqlite
+    volumes: ['demo_registry:/data','./mock_fsp:/workspace/mock_fsp']
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ['127.0.0.1:8027:8025']
+volumes:
+  demo_postgres:
+  demo_registry:

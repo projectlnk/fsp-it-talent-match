@@ -37,7 +37,7 @@ def _card(row, filters):
         reasons.append(label + ', '.join(matched))
     if record.test_score is not None:
         reasons.append(f'Результат подтверждения категории: {record.test_score}%')
-    return CandidateCardRead(profile_id=profile.id, full_name=public_text(profile.full_name),
+    return CandidateCardRead(photo_version=profile.photo_version, profile_id=profile.id, full_name=public_text(profile.full_name),
         location=public_text(profile.location), desired_role=public_text(profile.desired_role),
         desired_salary_from=profile.desired_salary_from, desired_salary_to=profile.desired_salary_to,
         work_format=profile.work_format, experience_years=profile.experience_years,
@@ -51,7 +51,13 @@ def _card(row, filters):
 def search_candidates(session, query):
     total = session.scalar(queries.count_candidates(query)) or 0
     rows = session.execute(queries.page_candidates(query)).all()
-    return CandidateSearchResult(items=[_card(row, query) for row in rows],
+    cards = [_card(row, query) for row in rows]
+    counts = dict(session.execute(select(CandidateProfile.id, queries.solved_tasks_count()).where(CandidateProfile.id.in_([c.profile_id for c in cards]))).all()) if cards else {}
+    for card,row in zip(cards,rows):
+        card.solved_tasks = counts.get(card.profile_id,0)
+        card.fsp_achievement_count = len(row[0].fsp_achievements)
+        card.match_reasons.append(f'Достижения ФСП: {card.fsp_achievement_count}; правильно решённые задания завершённых тестов: {card.solved_tasks}. Используются при равном соответствии.')
+    return CandidateSearchResult(items=cards,
         meta=SearchMeta(total=total, page=query.page, page_size=query.page_size,
                         total_pages=(total + query.page_size - 1) // query.page_size))
 
@@ -76,7 +82,10 @@ def get_candidate_card(session, *, profile_id):
         competition_name=public_text(a.competition_name), competition_date=a.competition_date, place=a.place,
         rank=public_text(a.rank), is_team=a.is_team, is_demo=a.is_demo)
         for a in sorted(profile.fsp_achievements, key=lambda a: (a.competition_date.toordinal() if a.competition_date else 0, a.id), reverse=True)]
-    return CandidateDetailRead(**_card(row, query).model_dump(), about=public_text(profile.about),
+    brief=_card(row,query)
+    brief.fsp_achievement_count=len(achievements)
+    brief.solved_tasks=session.scalar(select(queries.solved_tasks_count()).select_from(CandidateProfile).where(CandidateProfile.id==profile_id)) or 0
+    return CandidateDetailRead(**brief.model_dump(), about=public_text(profile.about),
         experiences=experiences, fsp_achievements=achievements,
         results=[TestResultBrief(specialization_code=public_text(s.code), specialization_name=public_text(s.name),
             grade_code=public_text(g.code), grade_name=public_text(g.name), score=a.score, passed=a.passed,
@@ -89,11 +98,21 @@ def reference_filters(session):
 
 
 def set_publication(session, user_id, is_searchable):
+    from app.modules.career.service import consent, require_processing
+    from app.modules.auth.models import User
+    if is_searchable:
+        user = session.get(User, user_id)
+        if not user or not user.is_email_verified:
+            from fastapi import HTTPException
+            raise HTTPException(403, 'Сначала подтвердите email')
+        require_processing(session, user_id)
+    session.scalar(select(User).where(User.id == user_id).with_for_update())
     profile = session.scalar(select(CandidateProfile).where(CandidateProfile.user_id == user_id)
                              .with_for_update().execution_options(populate_existing=True))
     if profile is None:
         raise CandidateNotFound('Профиль не найден')
     profile.is_searchable = is_searchable
+    consent(session, user_id, 'publication', is_searchable)
     session.commit()
     return profile.is_searchable
 

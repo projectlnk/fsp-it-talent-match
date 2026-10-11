@@ -40,6 +40,7 @@ def register(payload: UserRegister, session: Session = Depends(get_session)) -> 
             password=payload.password,
             role=payload.role,
             full_name=payload.full_name,
+            processing_consent=payload.processing_consent,
         )
     except service.EmailAlreadyExists as exc:
         raise HTTPException(

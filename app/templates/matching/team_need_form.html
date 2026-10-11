@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block title %}Шаблон потребности · ФСП IT Карьера{% endblock %}{% block content %}
+<div class="page-heading"><p class="eyebrow">Потребность команды / {{ 'Редактирование' if item else 'Создание' }}</p><h1>{{ 'Изменить потребность команды' if item else 'Создать потребность команды' }}</h1><p class="lead">От 1 до 10 позиций с независимыми фильтрами. Шаблон не публикует вакансию и не создаёт приглашения.</p></div>
+{% if error %}<p class="alert alert-error" role="alert">{{ error }}</p>{% endif %}
+<form class="form team-need-form" data-team-need-form method="post" action="{{ '/employer/team-needs/' ~ item.id ~ '/edit' if item else '/employer/team-needs' }}"><input type="hidden" name="token" value="{{ csrf_token }}"><section class="card"><label>Название шаблона<input name="name" value="{{ name }}" maxlength="255" required placeholder="Например, Команда нового проекта"></label></section>
+<div class="stack" data-need-positions>{% for p in positions %}{% set index=loop.index0 %}{% include 'matching/_need_position.html' %}{% endfor %}</div><p class="muted small" data-positions-help role="status">Можно добавить до 10 позиций.</p><div class="actions"><button type="button" class="button button-outline" data-add-position>Добавить позицию</button><button type="submit">Сохранить шаблон</button><a href="/employer/team-needs">Отмена</a></div>
+<template data-position-template>{% set index='__INDEX__' %}{% set p={'name':'','filters':{'skills':[]}} %}{% include 'matching/_need_position.html' %}</template></form>
+{% endblock %}

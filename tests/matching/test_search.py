@@ -3,6 +3,19 @@ from sqlalchemy.orm import Session
 from app.modules.assessments.models import CandidateCategory, CategoryStatus
 API='/api/v1/matching/candidates'
 
+
+@pytest.fixture(autouse=True)
+def employer_profile_for_detail(database):
+    """HTML profile views record owner-scoped activity and need a real company."""
+    from app.modules.employers.models import EmployerProfile
+    from app.modules.career.models import ActivityEvent
+    engine, data = database
+    EmployerProfile.__table__.create(engine, checkfirst=True)
+    ActivityEvent.__table__.create(engine, checkfirst=True)
+    with Session(engine) as session:
+        session.add(EmployerProfile(user_id=data['employer'].id, company_name='Тестовая компания поиска'))
+        session.commit()
+
 @pytest.mark.parametrize('query,expected',[('',4),('?specialization=backend',3),('?grade=junior',1),('?skills=python&skills=sql',4),('?skills=python&skills=sql&all_skills=true',3),('?skills=python&skills=sql&all_skills=false',4),('?skills=python&skills=Rust&all_skills=true',0),('?all_skills=true',4),('?skills=PYTHON&skills=python',4),('?specialization=backend&grade=middle&skills=sql&location=моск&work_format=remote',2),('?skills=Rust',0),('?specialization=unknown',0),('?location=%25',0),('?location=%5F',0)])
 def test_filters(client,headers,query,expected):
     r=client.get(API+query,headers=headers);assert r.status_code==200,r.text

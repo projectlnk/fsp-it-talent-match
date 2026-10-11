@@ -1,0 +1,1 @@
+<label>Роль<select name="role" required><option value="candidate" {% if role|default('candidate') == 'candidate' %}selected{% endif %}>Кандидат</option><option value="employer" {% if role == 'employer' %}selected{% endif %}>Работодатель</option></select></label>

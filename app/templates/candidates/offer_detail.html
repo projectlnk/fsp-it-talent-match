@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p><a href="/candidate/profile">Мой профиль</a> · <a href="/career/connections">Чаты и приглашения</a></p>
 <h1>{{ offer.title }}</h1>
 
 <p class="muted">
@@ -11,7 +11,8 @@
   {% if offer.status == 'sent' %}<span class="badge">новое</span>
   {% elif offer.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
   {% elif offer.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
-  {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
+  {% elif offer.status == 'revoked' %}<span class="badge">отозвано</span>
+          {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
 </p>
 
 <div class="alert alert-info">
@@ -37,7 +38,7 @@
     <h2>Ответ</h2>
     <p class="muted small">
       При принятии ваши контакты (email и телефон из профиля) станут видны работодателю.
-      При отклонении они не раскрываются.
+      При отклонении они не раскрываются. Принятие означает готовность обсудить условия, а не согласие выйти на работу.
     </p>
     <div class="form form-inline">
       <form method="post" action="/candidate/offers/{{ offer.id }}/respond">
@@ -52,13 +53,15 @@
   </section>
 {% elif offer.status == 'accepted' %}
   <div class="alert alert-success">
-    Вы приняли приглашение. Работодатель видит ваши контакты и может связаться.
+    вы приняли приглашение. Контакты доступны только этому работодателю. <a href="/career/connections">Перейти к переписке</a> · <a href="/career/meetings">Назначенные встречи</a>
   </div>
+{% elif offer.status == 'revoked' %}
+  <p class="notice">Приглашение отозвано работодателем. История сохранена. Отправка сообщений доступна после принятия нового приглашения.</p>
 {% else %}
   <div class="alert alert-error">
-    Вы отклонили приглашение.
+    вы отклонили приглашение.
   </div>
 {% endif %}
 
-<p><a href="/candidate/offers">← Все приглашения</a></p>
+<p><a href="/candidate/offers"> Все приглашения</a></p>
 {% endblock %}

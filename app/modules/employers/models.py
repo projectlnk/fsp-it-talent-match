@@ -10,6 +10,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     func,
@@ -24,6 +25,7 @@ class OfferStatus(str, enum.Enum):
     VIEWED = "viewed"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
+    REVOKED = "revoked"
 
 
 class SalaryCurrency(str, enum.Enum):
@@ -41,6 +43,8 @@ class EmployerProfile(Base):
     website: Mapped[str | None] = mapped_column(String(255), nullable=True)
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    photo_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    photo_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -61,6 +65,7 @@ class Offer(Base):
     candidate_profile_id: Mapped[int] = mapped_column(
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"), index=True
     )
+    opportunity_id: Mapped[int | None] = mapped_column(ForeignKey("career_opportunities.id"), index=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     salary_from: Mapped[int] = mapped_column(Integer)
@@ -79,5 +84,7 @@ class Offer(Base):
     )
     viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     employer: Mapped[EmployerProfile] = relationship(back_populates="offers")

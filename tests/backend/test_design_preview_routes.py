@@ -1,36 +1,30 @@
-"""Read-only prototype route checks: these tests never connect to a database."""
+"""Public overview is separate from operator tools; no fictional screens."""
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.db.session import get_session
-
-SCREENS = ["", "/candidate", "/employer", "/search", "/person/1", "/person/2", "/person/3", "/invitation", "/fsp", "/privacy", "/resume"]
+from app.core.config import get_settings
 
 @pytest.fixture
-def client():
-    def no_database():
-        raise AssertionError("Design preview must not depend on a database")
-    app.dependency_overrides[get_session] = no_database
+def client(monkeypatch):
+    monkeypatch.setattr(get_settings(),'demo_mode',False)
+    class NoDatabase:
+        def __getattr__(self,key):
+            raise AssertionError('Disabled public demo must not query business data')
+    old=app.dependency_overrides.copy()
+    app.dependency_overrides[get_session]=lambda:NoDatabase()
     try:
-        with TestClient(app) as client:
-            yield client
-    finally:
-        app.dependency_overrides.pop(get_session, None)
+        with TestClient(app) as client:yield client
+    finally:app.dependency_overrides.clear();app.dependency_overrides.update(old)
 
-@pytest.mark.parametrize("screen", SCREENS)
-def test_preview_is_read_only_and_marked(client, screen):
-    response = client.get("/design-preview" + screen)
-    assert response.status_code == 200
-    assert "Демонстрационные данные" in response.text
-    assert "ПРОТОТИП" in response.text
-    assert client.post("/design-preview" + screen).status_code == 405
+def test_disabled_public_overview(client):
+    response=client.get('/design-preview')
+    assert response.status_code==200
+    assert 'Управление отключено' in response.text
+    assert 'data-demo-form' not in response.text
+    assert client.post('/design-preview/time',data={'days':'1'}).status_code==404
+    assert client.post('/design-preview/sets',data={'password':'demo12345'}).status_code==404
 
-@pytest.mark.parametrize("path", ["/design-preview/missing", "/design-preview/person/unknown", "/design-preview/invitation?candidate=unknown"])
-def test_preview_unknown_screen_or_person(client, path):
-    assert client.get(path).status_code == 404
-
-def test_no_contact_in_initial_candidate_markup(client):
-    response = client.get("/design-preview/person/2")
-    assert "Скрыты до принятия приглашения" in response.text
-    assert 'data-contact-open hidden' in response.text
-    assert "Истории ФСП нет" in response.text
+@pytest.mark.parametrize('path',['/candidate','/employer','/search','/person/1','/invitation','/fsp','/privacy','/resume'])
+def test_old_fictional_screens_are_not_user_functions(client,path):
+    assert client.get('/design-preview'+path).status_code==404

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
+{% from 'components/candidate_tabs.html' import test_tabs %}{% block content %}{{ test_tabs('recommended') }}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Начать тестирование</h1>
 {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
 <p class="muted">Выберите специализацию и грейд, который хотите подтвердить. Тест содержит 10 вопросов.</p>
@@ -21,5 +21,5 @@
   </label>
   <button type="submit">Начать</button>
 </form></section>
-<p><a href="/assessments">← Назад к списку</a></p>
+<p><a href="/assessments"> Назад к списку</a></p>
 {% endblock %}

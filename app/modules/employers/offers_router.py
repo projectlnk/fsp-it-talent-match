@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
@@ -77,5 +77,16 @@ def get_offer(
         return service.get_offer_for_employer(
             session, offer_id=offer_id, employer_user_id=user.id
         )
+    except service.OfferError as exc:
+        raise _handle(exc) from exc
+
+@router.post("/{offer_id}/revoke", response_model=OfferRead)
+def revoke_offer(offer_id: int, request: Request,
+    user: User = Depends(_EMPLOYER_ONLY), session: Session = Depends(get_session)):
+    from app.modules.matching.publication import check_csrf
+    if not request.headers.get('authorization', '').lower().startswith('bearer '):
+        check_csrf(request, user.id, request.headers.get('x-csrf-token', ''))
+    try:
+        return service.revoke_offer(session, offer_id=offer_id, employer_user_id=user.id)
     except service.OfferError as exc:
         raise _handle(exc) from exc

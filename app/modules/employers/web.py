@@ -1,7 +1,8 @@
 """HTML-кабинет работодателя: профиль компании, поиск кандидатов, приглашения."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, Depends, Form, Request, HTTPException, status
+from app.modules.matching.publication import csrf_token, check_csrf
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
@@ -27,7 +28,7 @@ def _render(
     context: dict,
     status_code: int = status.HTTP_200_OK,
 ):
-    base = {"user": user}
+    base = {"user": user, "csrf_token": csrf_token(user.id)}
     base.update(context)
     return templates.TemplateResponse(
         request=request, name=template, context=base, status_code=status_code
@@ -80,7 +81,7 @@ def profile_update(
             {"profile": profile, "error": str(exc)},
             status_code=400,
         )
-    return RedirectResponse("/employer/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/employer/profile?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 # --- Приглашения ----------------------------------------------------------
@@ -90,6 +91,7 @@ def profile_update(
 def offer_create(
     request: Request,
     candidate_profile_id: int = Form(...),
+    opportunity_id: int | None = Form(None),
     title: str = Form(""),
     description: str = Form(""),
     salary_from: str = Form(""),
@@ -111,6 +113,7 @@ def offer_create(
             employer_user_id=user.id,
             payload=OfferCreate(
                 candidate_profile_id=candidate_profile_id,
+                opportunity_id=opportunity_id,
                 title=title.strip(),
                 description=description.strip() or None,
                 salary_from=salary_from,
@@ -191,3 +194,16 @@ def offer_detail(
         "employers/offer_detail.html",
         {"offer": offer},
     )
+
+
+@router.post("/offers/{offer_id}/revoke")
+def offer_revoke(request: Request, offer_id: int, token: str = Form(""),
+    user: User = Depends(_EMPLOYER_ONLY), session: Session = Depends(get_session)):
+    check_csrf(request, user.id, token)
+    try:
+        service.revoke_offer(session, offer_id=offer_id, employer_user_id=user.id)
+    except service.OfferNotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except service.OfferError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return RedirectResponse("/employer/offers?revoked=1", status_code=303)

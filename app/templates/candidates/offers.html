@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}
+{% block content %}<p><a href="/candidate/profile">Мой профиль</a> · <a href="/career/connections">Чаты и приглашения</a></p>
 <h1>Входящие приглашения</h1>
 
 {% if offers %}
@@ -14,6 +14,7 @@
           {% if o.status == 'sent' %}<span class="badge">новое</span>
           {% elif o.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
           {% elif o.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
+          {% elif o.status == 'revoked' %}<span class="badge">отозвано</span>
           {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
         </div>
         <div class="muted">

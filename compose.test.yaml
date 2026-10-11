@@ -38,8 +38,14 @@ services:
     image: fsp-matching-check:local
     command: ['uvicorn', 'mock_fsp.main:app', '--host', '0.0.0.0', '--port', '8000']
     ports: ['127.0.0.1::8000']
+    environment:
+      MOCK_STORAGE_PATH: /data/registry.sqlite
+      MOCK_DEMO_MODE: ${TEST_MOCK_DEMO_MODE:-false}
+      DEMO_MOCK_KEY: ${TEST_DEMO_MOCK_KEY:-}
+    volumes: ['./mock_fsp:/workspace/mock_fsp', 'registry_test_data:/data']
   mailpit:
     image: axllent/mailpit:v1.27
     ports: ['127.0.0.1::8025', '127.0.0.1::1025']
 volumes:
   postgres_test_data:
+  registry_test_data:

@@ -88,12 +88,16 @@ def offer_respond(
         )
 
     try:
-        offers_service.respond_to_offer(
+        offer = offers_service.respond_to_offer(
             session,
             offer_id=offer_id,
             candidate_user_id=user.id,
             decision=decision,
         )
+        if decision == 'accepted':
+            from app.modules.employers.models import Offer
+            stored = session.get(Offer, offer.id)
+            return RedirectResponse(f'/career/threads/{stored.employer_profile_id}/{stored.candidate_profile_id}', status_code=303)
     except OfferError:
         pass  # редирект покажет актуальное состояние
 

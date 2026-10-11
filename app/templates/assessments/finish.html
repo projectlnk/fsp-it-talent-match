@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
+{% from 'components/candidate_tabs.html' import test_tabs %}{% block content %}{{ test_tabs('progress') }}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Завершить тест</h1>
-<p>Вы ответили на все вопросы. Нажмите кнопку, чтобы получить результат.</p>
+<p>вы ответили на все вопросы. Нажмите кнопку, чтобы получить результат.</p>
 
 <section class="card"><form method="post" action="/assessments/attempt/{{ attempt_id }}/finish">
   <button type="submit" class="btn">Завершить и посмотреть результат</button>

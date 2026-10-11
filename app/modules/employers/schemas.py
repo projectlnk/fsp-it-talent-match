@@ -47,6 +47,7 @@ class OfferCreate(BaseModel):
     """
 
     candidate_profile_id: int = Field(gt=0)
+    opportunity_id: int | None = Field(default=None, gt=0)
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
     salary_from: int = Field(ge=0)
@@ -130,6 +131,7 @@ class OfferRead(BaseModel):
     updated_at: datetime
     viewed_at: datetime | None = None
     responded_at: datetime | None = None
+    revoked_at: datetime | None = None
 
     employer: EmployerProfileBrief
     candidate: CandidateBrief

@@ -11,6 +11,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -42,6 +43,8 @@ class CandidateProfile(Base):
     desired_salary_to: Mapped[int | None] = mapped_column(Integer, nullable=True)
     work_format: Mapped[WorkFormat | None] = mapped_column(Enum(WorkFormat, name="work_format"), nullable=True)
     experience_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    photo_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    photo_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

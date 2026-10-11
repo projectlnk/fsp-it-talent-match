@@ -1,0 +1,10 @@
+{% from 'components/icons.html' import icon %}
+{% set path = request.url.path %}
+{% set section = 'profile' %}
+{% if path.startswith('/assessments') %}{% set section = 'tests' %}
+{% elif path.startswith('/career/opportunities') or path.startswith('/career/applications') %}{% set section = 'vacancies' %}
+{% elif path.startswith('/career/leaderboard') or path.startswith('/career/companies') %}{% set section = 'employers' %}
+{% elif path.startswith('/career/connections') or path.startswith('/career/threads') or path.startswith('/career/meetings') %}{% set section = 'connections' %}{% endif %}
+{% for key,href,label in [('profile','/candidate/profile','Мой профиль'),('tests','/assessments','Тесты'),('vacancies','/career/opportunities','Вакансии'),('employers','/career/leaderboard','Работодатели'),('connections','/career/connections','Связь')] %}
+<a href="{{ href }}" {% if section == key %}class="active" aria-current="page"{% endif %}>{{ icon(key) }}{{ label }}{% if key == 'connections' %}<span class="message-badge" data-message-badge hidden aria-label="Новые сообщения"></span>{% endif %}</a>
+{% endfor %}

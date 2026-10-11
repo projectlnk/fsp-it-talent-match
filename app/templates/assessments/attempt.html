@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
+{% from 'components/candidate_tabs.html' import test_tabs %}{% block content %}{{ test_tabs('progress') }}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Тест: {{ spec.name }} / {{ grade.name }}</h1>
 <div class="question-meta"><span>Вопрос {{ answered_count + 1 }} из {{ total }}</span><span>Ответы сохраняются</span></div><div class="progress-track" role="progressbar" aria-label="Прогресс теста" aria-valuenow="{{ answered_count }}" aria-valuemin="0" aria-valuemax="{{ total }}"><span style="width:{{ answered_count / total * 100 if total else 0 }}%"></span></div>
 
@@ -7,10 +7,12 @@
   <p class="question-text">{{ current.text }}</p>
   <form method="post" action="/assessments/attempt/{{ attempt.id }}/answer" class="form">
     <input type="hidden" name="answer_id" value="{{ current.answer_id }}">
+    <input type="hidden" name="answer_kind" value="{{ current.type }}">
     <div class="options">
+      {% if current.type in ['text','code'] %}<label>Ответ<textarea name="value" required maxlength="10000"></textarea></label>{% endif %}
       {% for opt in current.options %}
         <label class="option">
-          <input type="radio" name="value" value="{{ opt }}" required>
+          <input type="{{ 'checkbox' if current.type == 'multiple_choice' else 'radio' }}" name="{{ 'values' if current.type == 'multiple_choice' else 'value' }}" value="{{ opt }}" {% if current.type != 'multiple_choice' %}required{% endif %}>
           <span>{{ opt }}</span>
         </label>
       {% endfor %}
