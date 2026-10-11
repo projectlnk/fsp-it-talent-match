@@ -1,7 +1,7 @@
 """Additive hiring workflow; existing users, profiles and offers stay authoritative."""
 from datetime import datetime
-from sqlalchemy import ForeignKey, String, Text, Integer, DateTime, Boolean, UniqueConstraint, CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey, String, Text, Integer, DateTime, Boolean, UniqueConstraint, CheckConstraint, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
@@ -106,3 +106,34 @@ class DemoSet(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     employer_user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     candidate_user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+
+
+class ThreadReadState(Base):
+    """Per-participant cursor; reading one dialogue never clears another."""
+    __tablename__ = 'career_thread_reads'
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), primary_key=True)
+    employer_id: Mapped[int] = mapped_column(ForeignKey('employer_profiles.id'), primary_key=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey('candidate_profiles.id'), primary_key=True)
+    last_message_id: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class TeamNeedTemplate(Base):
+    """Owner's saved search filters; independent of vacancy lifetime and salary."""
+    __tablename__ = 'team_need_templates'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    employer_id: Mapped[int] = mapped_column(ForeignKey('employer_profiles.id'), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    positions: Mapped[list['TeamNeedPosition']] = relationship(
+        cascade='all, delete-orphan', order_by='TeamNeedPosition.ordinal')
+
+
+class TeamNeedPosition(Base):
+    __tablename__ = 'team_need_positions'
+    __table_args__ = (UniqueConstraint('template_id', 'ordinal', name='one_team_position_order'),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey('team_need_templates.id', ondelete='CASCADE'), index=True)
+    ordinal: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(255))
+    filters: Mapped[dict] = mapped_column(JSON)

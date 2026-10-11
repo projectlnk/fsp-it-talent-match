@@ -37,7 +37,7 @@ def _card(row, filters):
         reasons.append(label + ', '.join(matched))
     if record.test_score is not None:
         reasons.append(f'Результат подтверждения категории: {record.test_score}%')
-    return CandidateCardRead(profile_id=profile.id, full_name=public_text(profile.full_name),
+    return CandidateCardRead(photo_version=profile.photo_version, profile_id=profile.id, full_name=public_text(profile.full_name),
         location=public_text(profile.location), desired_role=public_text(profile.desired_role),
         desired_salary_from=profile.desired_salary_from, desired_salary_to=profile.desired_salary_to,
         work_format=profile.work_format, experience_years=profile.experience_years,

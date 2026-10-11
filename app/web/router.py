@@ -8,12 +8,16 @@ from app.modules.auth.web import router as auth_web_router
 from app.modules.candidates.web import router as candidates_web_router
 from app.modules.employers.web import router as employers_web_router
 from app.web.templates import templates
+from app.modules.matching.publication import csrf_token
 from app.modules.candidates.offers_web import router as candidates_offers_web_router
 from app.modules.career.demo import router as design_preview_router
 from app.modules.matching.web import router as matching_web_router
 
 
+from app.web.photos import router as photos_router
+
 router = APIRouter()
+router.include_router(photos_router)
 from app.modules.career.web import router as career_router
 router.include_router(career_router)
 router.include_router(design_preview_router)
@@ -32,6 +36,6 @@ def index(request: Request, user: User | None = Depends(get_current_user_optiona
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"user": user, "public_page": True},
+        context={"user": user, "public_page": True, "csrf_token": csrf_token(user.id) if user else ""},
         headers={"Cache-Control": "no-store"},
     )

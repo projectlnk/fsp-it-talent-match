@@ -247,6 +247,25 @@ def message_feed(eid: int,cid: int,after: int = Query(0,ge=0),user: User = Depen
     return JSONResponse({'can_send':s.accepted_pair(db,eid,cid), 'can_view':s.can_view_candidate(db,eid,cid), 'messages':[{'id':m.id,'own':m.author_id==user.id,'body':m.body,'created_at':m.created_at.isoformat(),'technical':m.kind != 'message'} for m in messages]},headers={'Cache-Control':'no-store'})
 
 
+@router.get('/message-notifications')
+def message_notifications(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    count = s.unread_messages(db, user) if user.is_email_verified else 0
+    return JSONResponse({'count': count}, headers={'Cache-Control': 'no-store'})
+
+
+@router.post('/threads/{eid}/{cid}/read')
+async def thread_read(request: Request, eid: int, cid: int,
+                      user: User = Depends(verified), db: Session = Depends(get_session)):
+    data = await form(request, user)
+    try:
+        last_message_id = int(data.get('last_message', ''))
+    except (ValueError, TypeError):
+        raise HTTPException(422, 'Некорректное сообщение')
+    result = s.mark_thread_read(db, user, eid, cid, last_message_id)
+    db.commit()
+    return JSONResponse({'last_read': result}, headers={'Cache-Control': 'no-store'})
+
+
 @router.post('/threads/{eid}/{cid}')
 async def message(request: Request,eid: int,cid: int,user: User = Depends(verified),db: Session = Depends(get_session)):
     data=await form(request,user)

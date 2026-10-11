@@ -75,6 +75,7 @@ class TestResultBrief(BaseModel):
     finished_at: datetime | None
 
 class CandidateCardRead(BaseModel):
+    photo_version: str | None = None
     profile_id: int
     full_name: str
     location: str | None = None
@@ -115,3 +116,35 @@ class CandidateSearchResult(BaseModel):
 
 class SearchPublication(BaseModel):
     is_searchable: bool
+
+
+class TeamNeedPositionInput(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    filters: CandidateSearchQuery
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class TeamNeedInput(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    positions: list[TeamNeedPositionInput] = Field(min_length=1, max_length=10)
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+def search_query_from_params(params, prefix=''):
+    """Same parsing/validation for ordinary GET searches and saved form filters."""
+    optional = ('query', 'desired_role', 'experience_min', 'experience_max',
+                'salary_min', 'salary_max', 'fsp', 'test_score_min', 'activity_min',
+                'specialization', 'grade', 'location', 'work_format')
+    values = {key: params.get(prefix + key) or None for key in optional}
+    return CandidateSearchQuery(**values,
+        skills=[s for value in params.getlist(prefix + 'skills') for s in value.split(',')],
+        all_skills=params.get(prefix + 'all_skills', False),
+        page=params.get(prefix + 'page') or 1, page_size=params.get(prefix + 'page_size') or 20)

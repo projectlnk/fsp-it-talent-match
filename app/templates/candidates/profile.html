@@ -1,12 +1,15 @@
 {% extends "base.html" %}{% block content %}
-<div class="page-heading"><p class="eyebrow">Личный кабинет / Кандидат</p><h1>Мой профиль</h1><p class="lead">Личные сведения, профессиональный опыт и подтверждённая категория.</p></div>
+<div class="page-heading"><p class="eyebrow">Кабинет кандидата</p><h1>Мой профиль</h1><p class="lead">Опыт и навыки — в резюме. Подтверждённая квалификация — отдельно.</p></div>
+<section class="profile-overview"><div class="profile-summary"><span class="profile-summary-label">Ваш профиль</span><h2>{{ profile.full_name }}</h2><p>{{ profile.desired_role or 'Желаемая роль пока не указана' }}{% if profile.location %} · {{ profile.location }}{% endif %}</p><div class="tag-row"><span class="tag">{{ 'Публикация включена' if profile.is_searchable else 'Скрыт из поиска' }}</span>{% if profile.experience_years is not none %}<span class="tag">Опыт: {{ profile.experience_years }} лет</span>{% endif %}</div></div><div class="profile-proof"><span class="profile-summary-label">Подтверждённая квалификация</span>{% if current_category and current_category.status.value == 'confirmed' %}<strong>{{ current_specialization.name }} / {{ current_grade.name }}</strong><p>Категория подтверждена тестированием</p>{% else %}<strong>Категория не подтверждена</strong><a href="/assessments">Выбрать тест</a>{% endif %}</div></section>
+{% if request.query_params.get('photo_saved') %}<p class="notice" role="status">Фотография профиля обновлена.</p>{% endif %}{% if request.query_params.get('photo_error') %}<p class="alert alert-error" role="alert">{{ request.query_params.get('photo_error') }}</p>{% endif %}
+
 <nav class="section-tabs" aria-label="Разделы профиля">{% for key,label in [('profile','Сведения'),('fsp','ФСП и достижения'),('settings','Приватность и согласия')] %}<a href="/candidate/profile?tab={{ key }}" {% if tab == key %}class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 {% if request.query_params.get('saved') %}<div class="notice" role="status">Изменения сохранены.</div>{% endif %}
-<div class="content-grid"><div class="profile-editor">{% if tab == 'profile' %}<div class="card"><div class="card-heading"><div><h2>Профиль кандидата</h2><p>Основная информация и условия работы</p></div><span class="tag tag-purple">Личный профиль</span></div>
+<div class="content-grid"><div class="profile-editor">{% if tab == 'profile' %}{% with photo_profile=profile,landscape=false,photo_action='/candidate/profile/photo' %}{% include 'components/photo_editor.html' %}{% endwith %}<div class="card"><div class="card-heading"><div><h2>Профиль кандидата</h2><p>Основная информация и условия работы</p></div><span class="tag tag-purple">Личный профиль</span></div>
 <p class="muted small" data-profile-visibility-indicator>{% if profile.is_searchable %}Профиль доступен работодателям при подтверждённой категории{% else %}Профиль скрыт от работодателей · <a href="#visibility">Настройки</a>{% endif %}</p>
 {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
 
-<form method="post" action="/candidate/profile" class="form">
+<form method="post" action="/candidate/profile" class="form"><fieldset class="form-section"><legend>Личные сведения</legend>
   <label>ФИО
     <input type="text" name="full_name" required maxlength="255" value="{{ profile.full_name }}">
   </label>
@@ -19,6 +22,7 @@
   <label>О себе
     <textarea name="about" rows="4">{{ profile.about or '' }}</textarea>
   </label>
+</fieldset><fieldset class="form-section"><legend>Профессиональные ожидания</legend>
   <label>Желаемая роль
     <input type="text" name="desired_role" maxlength="255" value="{{ profile.desired_role or '' }}">
   </label>
@@ -43,7 +47,7 @@
   <label>Опыт, лет
     <input type="number" name="experience_years" min="0" max="80" value="{{ profile.experience_years if profile.experience_years is not none else '' }}">
   </label>
-  <button type="submit">Сохранить профиль</button>
+</fieldset><button type="submit">Сохранить профиль</button>
 </form></div>
 
 
@@ -197,9 +201,9 @@
 </section>
 <details class="consent-settings"><summary>Согласие на обработку данных</summary><form method="post" action="/career/consent" class="form"><input type="hidden" name="token" value="{{ csrf_token }}"><label class="checkbox"><input type="checkbox" name="processing" value="yes" {% if processing_consent %}checked{% endif %}>Разрешаю обработку данных для подбора и взаимодействия. Отзыв согласия скрывает профиль.</label><button type="submit">Сохранить согласие</button></form></details>
 </section>{% endif %}</div><aside class="stack">
-<section class="card"><h2>Категория и публикация</h2>{% if current_category %}<p>{{ current_specialization.name }} / {{ current_grade.name }}</p><span class="tag">{{ 'Подтверждена' if current_category.status.value == 'confirmed' else 'Не подтверждена' }}</span>{% else %}<p>Категория ещё не определена. Выберите направление и предполагаемый грейд в разделе тестов.</p>{% endif %}<p>{{ 'Публикация включена; для поиска нужна подтверждённая категория' if profile.is_searchable else 'Профиль скрыт из поиска' }}</p><a class="button button-small" href="/assessments">Открыть тесты</a><p><a href="/candidate/profile?tab=settings#visibility">Настройки публикации</a></p>{% if tab != 'settings' %}<div id="visibility"><a href="/candidate/profile?tab=settings#visibility">Видимость профиля и согласия</a></div>{% endif %}</section>
-<section class="card"><h2>Входящие приглашения</h2><p><strong>{{ pending_offers }}</strong> ожидают ответа</p><a class="button button-outline button-small" href="/candidate/offers">Посмотреть приглашения</a><p><a href="/career/connections">Переписка с работодателями</a></p><a href="/career/meetings">Назначенные встречи</a></section>
-<section class="card"><span class="tag">Резюме</span><h2 style="margin-top:14px">PDF-резюме</h2><p class="muted">Скачайте резюме, собранное из вашего профиля: навыки, опыт, результат тестирования и достижения ФСП.</p><div class="actions"><a class="button button-outline button-small" href="/candidate/profile/resume.pdf?preview=true" target="_blank" rel="noopener">Просмотреть PDF</a><button type="button" class="button button-small" data-resume-open>Скачать PDF</button></div>
+<section class="card proof-panel qualification-panel"><p class="eyebrow">Квалификация</p><h2>Категория и публикация</h2>{% if current_category %}<p>{{ current_specialization.name }} / {{ current_grade.name }}</p><span class="tag">{{ 'Подтверждена' if current_category.status.value == 'confirmed' else 'Не подтверждена' }}</span>{% else %}<p>Категория ещё не определена. Выберите направление и предполагаемый грейд в разделе тестов.</p>{% endif %}<p>{{ 'Публикация включена; для поиска нужна подтверждённая категория' if profile.is_searchable else 'Профиль скрыт из поиска' }}</p><div class="qualification-actions"><a class="button button-small" href="/assessments">Открыть тесты</a><a href="/candidate/profile?tab=settings#visibility">Настройки публикации</a></div>{% if tab != 'settings' %}<div id="visibility"><a href="/candidate/profile?tab=settings#visibility">Видимость профиля и согласия</a></div>{% endif %}</section>
+<section class="card action-panel invitation-panel"><h2>Входящие приглашения</h2><p class="invitation-status"><span class="invitation-dot {{ 'is-pending' if pending_offers else '' }}" aria-hidden="true"></span><span><strong>{{ pending_offers }}</strong> ожидают ответа</span></p><a class="button button-outline button-small" href="/candidate/offers">Посмотреть приглашения</a><div class="invitation-links"><a href="/career/connections">Переписка с работодателями</a><a href="/career/meetings">Назначенные встречи</a></div></section>
+<section class="card utility-panel"><span class="tag">Резюме</span><h2 style="margin-top:14px">PDF-резюме</h2><p class="muted">Скачайте резюме, собранное из вашего профиля: навыки, опыт, результат тестирования и достижения ФСП.</p><div class="actions"><a class="button button-outline button-small" href="/candidate/profile/resume.pdf?preview=true" target="_blank" rel="noopener">Просмотреть PDF</a><button type="button" class="button button-small" data-resume-open>Скачать PDF</button></div>
 <dialog class="resume-dialog card" data-resume-dialog aria-labelledby="resume-dialog-title" aria-describedby="resume-dialog-description">
 <h2 id="resume-dialog-title">Скачать резюме</h2>
 <p id="resume-dialog-description">Документ формируется из сохранённых данных профиля. Перед скачиванием проверьте полноту профиля и включённые контактные данные.</p>

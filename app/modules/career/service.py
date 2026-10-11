@@ -2,7 +2,7 @@
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from zoneinfo import ZoneInfo
-from sqlalchemy import select, func, case, cast, Float, and_, exists
+from sqlalchemy import select, func, case, cast, Float, and_, or_, exists
 from sqlalchemy.orm import selectinload, aliased
 from fastapi import HTTPException
 from app.core.config import get_settings
@@ -13,7 +13,7 @@ from app.modules.assessments.models import Specialization
 from app.modules.matching.schemas import CandidateSearchQuery
 from app.modules.matching import service as matching, queries
 from app.modules.matching.ranking import rank_candidate
-from app.modules.career.models import Opportunity, Application, ActivityEvent, Meeting, ThreadMessage, PrivacyConsent, DemoClock
+from app.modules.career.models import Opportunity, Application, ActivityEvent, Meeting, ThreadMessage, PrivacyConsent, DemoClock, ThreadReadState
 from app.modules.career.schemas import OpportunityInput, MeetingInput
 
 
@@ -590,3 +590,41 @@ def update_meeting(session, user, mid, data=None, cancel=False):
         row.scheduled_at, row.timezone, row.channel = instant, data.timezone, data.channel
     session.flush()
     return row
+
+
+def unread_messages(session, user):
+    """Count incoming messages only in histories this participant may access."""
+    pairs = connections_for(session, user)
+    if not pairs:
+        return 0
+    allowed = or_(*(and_(ThreadMessage.employer_id == eid, ThreadMessage.candidate_id == cid)
+                    for eid, cid, _ in pairs))
+    return session.scalar(select(func.count(ThreadMessage.id)).outerjoin(ThreadReadState, and_(
+        ThreadReadState.user_id == user.id,
+        ThreadReadState.employer_id == ThreadMessage.employer_id,
+        ThreadReadState.candidate_id == ThreadMessage.candidate_id)).where(
+            allowed, ThreadMessage.author_id != user.id,
+            ThreadMessage.id > func.coalesce(ThreadReadState.last_message_id, 0))) or 0
+
+
+def mark_thread_read(session, user, eid, cid, last_message_id):
+    pair_access(session, user, eid, cid)
+    if last_message_id < 0:
+        fail('Некорректное сообщение', 422)
+    if not last_message_id:
+        return 0
+    message = session.get(ThreadMessage, last_message_id)
+    if not message or (message.employer_id, message.candidate_id) != (eid, cid):
+        fail('Сообщение недоступно в этом диалоге', 422)
+    # Serialize cursor creation/updates from multiple tabs without losing progress.
+    session.execute(select(User.id).where(User.id == user.id).with_for_update()).scalar_one()
+    key = (user.id, eid, cid)
+    cursor = session.get(ThreadReadState, key, populate_existing=True)
+    if cursor is None:
+        cursor = ThreadReadState(user_id=user.id, employer_id=eid, candidate_id=cid,
+                                 last_message_id=last_message_id)
+        session.add(cursor)
+    else:
+        cursor.last_message_id = max(cursor.last_message_id, last_message_id)
+    session.flush()
+    return cursor.last_message_id

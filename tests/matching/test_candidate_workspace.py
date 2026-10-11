@@ -23,8 +23,8 @@ def test_navigation_profile_sections_and_company_links(career,client):
     db.add(Offer(employer_profile_id=company.id,candidate_profile_id=cid,title='Входящее приглашение',salary_from=1,salary_to=2,status=OfferStatus.SENT));db.commit()
     response=client.get('/candidate/profile',headers=auth(c));assert response.status_code==200
     aside=response.text.split('<aside class="sidebar">')[1].split('</aside>')[0]
-    assert re.findall(r'<a[^>]*>([^<]+)</a>',aside)==['Мой профиль','Тесты','Вакансии','Работодатели','Связь']
-    assert '1</strong> ожидают ответа' in response.text and 'data-resume-dialog' in response.text
+    assert [re.sub(r'<[^>]+>', '', body).strip() for body in re.findall(r'<a[^>]*>(.*?)</a>', aside, re.S)]==['Мой профиль','Тесты','Вакансии','Работодатели','Связь']
+    assert re.search(r'\b1\s+ожидают ответа', re.sub(r'<[^>]+>', ' ', response.text)) and 'data-resume-dialog' in response.text
     for url in ['/candidate/profile?tab=fsp','/candidate/profile?tab=settings','/candidate/offers','/career/connections','/career/meetings','/career/applications']:
         assert client.get(url,headers=auth(c)).status_code==200,url
     assert 'тестовый реестр' in client.get('/candidate/profile?tab=fsp',headers=auth(c)).text

@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
           article.append(label);if(message.technical){const mark=document.createElement('p');mark.className='muted small';mark.dataset.technicalMessage='';mark.textContent='Автоматическое сообщение';article.append(mark);}article.append(body);history.append(article);history.dataset.lastMessage=String(message.id);
         }
         if(atBottom) history.scrollTop=history.scrollHeight;
+        document.dispatchEvent(new CustomEvent('fspcareer:chat-rendered'));
         status.textContent='Сообщения обновляются автоматически.';
       }catch{status.textContent='Не удалось обновить сообщения. Повторное подключение выполняется автоматически.';}
     },2000);

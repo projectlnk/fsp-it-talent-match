@@ -31,8 +31,8 @@ def test_sections_owned_cards_and_legacy_access(career,client):
     db.add(foreign);db.flush();db.add(EmployerProfile(user_id=foreign.id,company_name='Чужая компания'));db.commit()
     response=client.get('/career/opportunities',headers=auth(e))
     sidebar=response.text.split('<aside class="sidebar">')[1].split('</aside>')[0]
-    labels=re.findall(r'<a[^>]*>([^<]+)</a>',sidebar)
-    assert labels==['Профиль компании','Мои вакансии','Поиск кандидатов','Лидерборд','Связь']
+    labels=[re.sub(r'<[^>]+>', '', body).strip() for body in re.findall(r'<a[^>]*>(.*?)</a>', sidebar, re.S)]
+    assert labels==['Профиль компании','Мои вакансии','Потребность команды','Поиск кандидатов','Лидерборд','Связь']
     assert 'Архивная роль' not in response.text
     assert 'Архивная роль' in client.get('/career/opportunities?archive=true',headers=auth(e)).text
     for url in [f'/career/opportunities/{active.id}',f'/career/opportunities/{active.id}/edit','/career/applications','/employer/offers','/career/connections','/career/meetings','/career/leaderboard','/career/opportunities?kind=need']:
