@@ -124,8 +124,8 @@ def _to_offer_read(
 
     contacts = None
     if reveal_contacts and candidate_profile is not None:
-        from app.modules.career.service import contact_allowed
-        reveal_contacts = contact_allowed(session, candidate_profile.id)
+        from app.modules.career.service import accepted_pair
+        reveal_contacts = accepted_pair(session, offer.employer_profile_id, candidate_profile.id)
     if reveal_contacts and candidate_profile is not None:
         candidate_user = candidate_profile.user if hasattr(candidate_profile, "user") else None
         # email пользователя достаём через сессию, чтобы не зависеть от relationship
@@ -151,6 +151,7 @@ def _to_offer_read(
         updated_at=offer.updated_at,
         viewed_at=offer.viewed_at,
         responded_at=offer.responded_at,
+        revoked_at=offer.revoked_at,
         employer=EmployerProfileBrief.model_validate(employer),
         candidate=_candidate_brief(session, candidate_profile),
         contacts=contacts,
@@ -165,9 +166,10 @@ def create_offer(
 ) -> OfferRead:
     """Создаёт приглашение от имени работодателя.
 
-    Приглашение не привязано к вакансии. Зарплата обязательна.
+    Связь с вакансией необязательна. Зарплата обязательна.
     """
     employer = get_profile_by_user_id(session, employer_user_id)
+    session.scalar(select(EmployerProfile).where(EmployerProfile.id == employer.id).with_for_update())
     candidate = session.scalar(
         select(CandidateProfile)
         .where(CandidateProfile.id == payload.candidate_profile_id)
@@ -175,11 +177,24 @@ def create_offer(
     )
     from app.modules.auth.models import User, UserRole
     candidate_user = session.get(User, candidate.user_id) if candidate else None
-    if (candidate is None or not candidate.is_searchable or candidate_user is None
+    from app.modules.career.models import Application, Opportunity
+    application_access = bool(candidate and session.scalar(select(Application.id).join(Opportunity).where(
+        Opportunity.employer_id == employer.id, Application.candidate_id == candidate.id)))
+    if payload.opportunity_id is not None:
+        job = session.get(Opportunity, payload.opportunity_id)
+        if not job or job.employer_id != employer.id or job.kind != 'vacancy':
+            raise OfferError('Вакансия недоступна')
+        if not session.scalar(select(Application.id).where(Application.opportunity_id == job.id, Application.candidate_id == payload.candidate_profile_id)) and (candidate is None or not candidate.is_searchable):
+            raise CandidateNotFound('Кандидат не найден')
+    if (candidate is None or (not candidate.is_searchable and not application_access) or candidate_user is None
             or not candidate_user.is_active or candidate_user.role != UserRole.CANDIDATE):
         raise CandidateNotFound("Кандидат не найден")
 
+    from app.modules.career.service import contact_allowed
+    if not contact_allowed(session, candidate.id):
+        raise CandidateNotFound('Кандидат не найден')
     offer = Offer(
+        opportunity_id=payload.opportunity_id,
         employer_profile_id=employer.id,
         candidate_profile_id=candidate.id,
         title=payload.title.strip(),
@@ -308,6 +323,9 @@ def respond_to_offer(
     )
     if profile is None:
         raise CandidateNotFound("Профиль не найден")
+    company_id = session.scalar(select(Offer.employer_profile_id).where(Offer.id == offer_id, Offer.candidate_profile_id == profile.id))
+    if company_id is not None:
+        session.scalar(select(EmployerProfile).where(EmployerProfile.id == company_id).with_for_update())
     offer = session.scalar(
         select(Offer).where(
             Offer.id == offer_id,
@@ -317,8 +335,12 @@ def respond_to_offer(
     if offer is None:
         raise OfferNotFound("Приглашение не найдено")
 
-    if offer.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED}:
+    if offer.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED, OfferStatus.REVOKED}:
         if offer.status.value == decision:
+            if decision == 'accepted':
+                from app.modules.career.service import invitation_messages
+                invitation_messages(session, offer)
+                session.commit()
             return _to_offer_read(session, offer, reveal_contacts=False)
         raise InvalidStatusTransition("Приглашение уже обработано")
 
@@ -326,6 +348,31 @@ def respond_to_offer(
     offer.responded_at = datetime.now(UTC)
     if offer.viewed_at is None:
         offer.viewed_at = offer.responded_at
+    if decision == 'accepted':
+        from app.modules.career.service import invitation_messages
+        invitation_messages(session, offer)
     session.commit()
     session.refresh(offer)
+    return _to_offer_read(session, offer, reveal_contacts=False)
+
+
+def revoke_offer(session: Session, *, offer_id: int, employer_user_id: int) -> OfferRead:
+    """Owner-only, idempotent withdrawal; serialize with replies and messages."""
+    company = get_profile_by_user_id(session, employer_user_id)
+    session.scalar(select(EmployerProfile).where(EmployerProfile.id == company.id).with_for_update())
+    offer = session.scalar(select(Offer).where(Offer.id == offer_id,
+        Offer.employer_profile_id == company.id).with_for_update().execution_options(populate_existing=True))
+    if offer is None:
+        raise OfferNotFound("Приглашение не найдено")
+    if offer.status == OfferStatus.REVOKED:
+        return _to_offer_read(session, offer, reveal_contacts=False)
+    if offer.status == OfferStatus.REJECTED:
+        raise InvalidStatusTransition("Отклонённое приглашение нельзя отозвать")
+    from app.modules.career.models import ThreadMessage
+    offer.status = OfferStatus.REVOKED
+    offer.revoked_at = datetime.now(UTC)
+    session.add(ThreadMessage(employer_id=company.id, candidate_id=offer.candidate_profile_id,
+        author_id=company.user_id, body="Приглашение отозвано", kind="revocation",
+        offer_id=offer.id, created_at=offer.revoked_at))
+    session.commit()
     return _to_offer_read(session, offer, reveal_contacts=False)

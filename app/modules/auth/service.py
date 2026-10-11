@@ -193,13 +193,13 @@ def _send_verification_email(user: User, token: str) -> None:
     link = settings.app_base_url.rstrip("/") + "/auth/verify?" + urlencode({"token": token})
     body = (
         "Здравствуйте!\n\n"
-        "Подтвердите email на платформе FSP IT Talent Match.\n"
+        "Подтвердите email на платформе ФСП IT Карьера.\n"
         f"Перейдите по ссылке:\n{link}\n\n"
         f"Ссылка действует {settings.email_verification_token_expire_hours} ч.\n\n"
         "Если вы не регистрировались — проигнорируйте письмо."
     )
     html = (
-        '<html lang="ru"><body><h1>FSP IT Talent Match</h1>'
+        '<html lang="ru"><body><h1>ФСП IT Карьера</h1>'
         '<p>Здравствуйте! Подтвердите email, чтобы завершить регистрацию.</p>'
         f'<p><a href="{escape(link, quote=True)}">Подтвердить email</a></p>'
         f'<p>Если ссылка не открывается, скопируйте её: {escape(link)}</p>'
@@ -207,7 +207,7 @@ def _send_verification_email(user: User, token: str) -> None:
         '<p>Если вы не создавали аккаунт, проигнорируйте письмо.</p></body></html>'
     )
     try:
-        send_email(to=user.email, subject="Подтверждение email — FSP IT Talent Match",
+        send_email(to=user.email, subject="Подтверждение email — ФСП IT Карьера",
                    body=body, html_body=html)
     except EmailDeliveryError:
         raise VerificationEmailDeliveryError() from None

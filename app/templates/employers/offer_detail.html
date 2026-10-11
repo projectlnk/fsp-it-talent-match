@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block content %}
+{% from 'components/employer_tabs.html' import connection_tabs %}{% block content %}{{ connection_tabs(invitations=true) }}<p><a href="/employer/offers">Исходящие приглашения</a></p>
 <h1>Приглашение #{{ offer.id }}</h1>
 
 <p class="muted">Статус:
   {% if offer.status == 'sent' %}<span class="badge">отправлено</span>
   {% elif offer.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
   {% elif offer.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
-  {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
+  {% elif offer.status == 'revoked' %}<span class="badge">отозвано</span>
+          {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
 </p>
 
 <section class="profile-section">
@@ -47,6 +48,7 @@
       {% if offer.contacts.phone %}<dt>Телефон</dt><dd>{{ offer.contacts.phone }}</dd>{% endif %}
     </dl>
   </section>
+{% elif offer.status == 'revoked' %}<p class="notice">Приглашение отозвано. История переписки сохранена, новые сообщения недоступны до принятия нового приглашения.</p>
 {% elif offer.status == 'rejected' %}
   <div class="alert alert-error">Кандидат отклонил приглашение. Контакты не раскрываются.</div>
 {% else %}
@@ -55,5 +57,6 @@
   </div>
 {% endif %}
 
+{% include 'components/revoke_invitation.html' %}
 <p><a href="/employer/offers"> Все приглашения</a></p>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
+{% from 'components/candidate_tabs.html' import test_tabs %}{% block content %}{{ test_tabs('results') }}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Результат тестирования</h1>
 
 <div class="alert {% if attempt.passed %}alert-success{% else %}alert-error{% endif %}">
@@ -47,7 +47,7 @@
 </section>
 
 <p>
-  <a href="/assessments"> К списку тестов</a>
+  <a href="/assessments?tab=results"> К результатам</a>
   &nbsp;·&nbsp;
   <a href="/candidate/profile">Мой профиль</a>
 </p>

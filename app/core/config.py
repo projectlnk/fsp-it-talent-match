@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
     smtp_from_email: str = "noreply@fsp-it-talent.local"
-    smtp_from_name: str = "FSP IT Talent Match"
+    smtp_from_name: str = "ФСП IT Карьера"
     smtp_starttls: bool = False
     smtp_ssl: bool = False
     reload: bool = False

@@ -113,3 +113,11 @@ def get_current_user_optional(
         return get_current_user(request, credentials, session)
     except HTTPException:
         return None
+
+def workspace_home(user: User | None) -> str:
+    if user is not None:
+        if user.role == UserRole.CANDIDATE:
+            return '/candidate/profile'
+        if user.role == UserRole.EMPLOYER:
+            return '/employer/profile'
+    return '/'

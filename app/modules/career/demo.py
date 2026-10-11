@@ -12,7 +12,7 @@ from app.modules.auth.dependencies import get_current_user_optional
 from app.modules.auth.models import User, UserRole
 from app.modules.auth.security import hash_password
 from app.modules.candidates.models import CandidateProfile, CandidateSkill
-from app.modules.employers.models import EmployerProfile
+from app.modules.employers.models import EmployerProfile, Offer
 from app.modules.assessments.models import Specialization, Grade, Category, CandidateCategory, CategoryStatus
 from app.modules.career.models import DemoClock, DemoSet, Opportunity, Application, ActivityEvent, Meeting, ThreadMessage, PrivacyConsent
 from app.modules.career.schemas import OpportunityInput
@@ -154,7 +154,7 @@ async def reset(request: Request,sid: str,user=Depends(operator),db: Session=Dep
     eid=s.employer(db,row.employer_user_id).id;cid=s.candidate(db,row.candidate_user_id).id
     # Remove only this set's account-owned data, including later real demo interactions.
     for model,condition in [(ThreadMessage,(ThreadMessage.employer_id==eid)|(ThreadMessage.candidate_id==cid)),(Meeting,(Meeting.employer_id==eid)|(Meeting.candidate_id==cid)),(ActivityEvent,ActivityEvent.employer_id==eid),
-        (Application,(Application.opportunity_id.in_(select(Opportunity.id).where(Opportunity.employer_id==eid)))|(Application.candidate_id==cid)),(Opportunity,Opportunity.employer_id==eid),(PrivacyConsent,PrivacyConsent.user_id.in_([row.employer_user_id,row.candidate_user_id]))]:
+        (Application,(Application.opportunity_id.in_(select(Opportunity.id).where(Opportunity.employer_id==eid)))|(Application.candidate_id==cid)),(Offer,(Offer.employer_profile_id==eid)|(Offer.candidate_profile_id==cid)),(Opportunity,Opportunity.employer_id==eid),(PrivacyConsent,PrivacyConsent.user_id.in_([row.employer_user_id,row.candidate_user_id]))]:
         db.execute(delete(model).where(condition))
     ids=[row.employer_user_id,row.candidate_user_id];db.delete(row);db.flush()
     db.execute(delete(User).where(User.id.in_(ids)))

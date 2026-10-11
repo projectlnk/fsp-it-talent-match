@@ -15,6 +15,12 @@ from app.web.templates import templates
 
 @app.exception_handler(HTTPException)
 async def page_error(request: Request, exc: HTTPException):
+    is_api = request.url.path.startswith('/api/')
+    session_error = exc.status_code == 401 or (exc.status_code == 403 and exc.detail == 'Недостаточно прав')
+    is_navigation = 'text/html' in request.headers.get('accept', '') or request.headers.get('sec-fetch-mode') == 'navigate'
+    if not is_api and session_error and is_navigation and request.headers.get('hx-request') != 'true':
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse('/auth/session-refresh', status_code=303, headers={'Cache-Control':'no-store'})
     if request.url.path.startswith(('/career', '/design-preview')):
         return templates.TemplateResponse(request=request, name='career/error.html',
             context={'user':None,'error':exc.detail}, status_code=exc.status_code,

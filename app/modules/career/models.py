@@ -38,6 +38,7 @@ class Application(Base):
     status: Mapped[str] = mapped_column(String(20), default='submitted')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resume_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ActivityEvent(Base):
@@ -63,6 +64,8 @@ class Meeting(Base):
     status: Mapped[str] = mapped_column(String(25), default='scheduled')
     employer_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     interview_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    candidate_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    opportunity_id: Mapped[int | None] = mapped_column(ForeignKey('career_opportunities.id'), index=True)
     candidate_objection_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     employer_hire_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     candidate_hire_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -71,10 +74,13 @@ class Meeting(Base):
 
 class ThreadMessage(Base):
     __tablename__ = 'career_messages'
+    __table_args__ = (UniqueConstraint('offer_id', 'kind', name='one_offer_technical_message'),)
     id: Mapped[int] = mapped_column(primary_key=True)
     employer_id: Mapped[int] = mapped_column(ForeignKey('employer_profiles.id'), index=True)
     candidate_id: Mapped[int] = mapped_column(ForeignKey('candidate_profiles.id'), index=True)
     author_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    kind: Mapped[str] = mapped_column(String(25), default='message', server_default='message')
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey('offers.id'), index=True)
     body: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

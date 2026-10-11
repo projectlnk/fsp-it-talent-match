@@ -1,0 +1,13 @@
+<section class="card"><h2>Приглашение к обсуждению работы</h2><p>Принятие приглашения открывает переписку и означает готовность обсудить условия, а не согласие на трудоустройство.</p>
+{% set f = offer_form | default({}) %}
+<form method="post" action="/employer/offers" class="form" id="offer-form">
+  <input type="hidden" name="candidate_profile_id" value="{{ card.profile_id }}">
+  {% if invitation_job is defined and invitation_job %}<input type="hidden" name="opportunity_id" value="{{ invitation_job.id }}"><p>Вакансия: {{ invitation_job.title }}</p>{% endif %}
+  <label>Заголовок<input type="text" name="title" required maxlength="255" value="{{ f.get('title', 'Приглашение для ' ~ card.full_name) }}"></label>
+  <label>Описание предложения<textarea name="description" rows="4" placeholder="Проект, команда и задачи">{{ f.get('description', '') }}</textarea></label>
+  <label>Зарплата от, ₽<input type="number" name="salary_from" required min="0" step="1" value="{{ f.get('salary_from', '') }}"></label>
+  <label>Зарплата до, ₽<input type="number" name="salary_to" required min="0" step="1" value="{{ f.get('salary_to', '') }}"></label>
+  <label class="checkbox"><input type="checkbox" name="salary_gross" value="1" {% if f.get('salary_gross', true) %}checked{% endif %}>До вычета НДФЛ</label>
+  <label>Способ связи<input type="text" name="contact_method" maxlength="255" placeholder="Email или Telegram работодателя" value="{{ f.get('contact_method', '') }}"></label>
+  <button type="submit">Пригласить</button>
+</form></section>

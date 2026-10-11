@@ -1,0 +1,6 @@
+{% if offer.status in ('sent','viewed','accepted') %}
+<form method="post" action="/employer/offers/{{ offer.id }}/revoke" data-loading-form>
+<input type="hidden" name="token" value="{{ csrf_token }}">
+<button type="submit" class="button button-outline button-small">Отозвать приглашение</button>
+</form>
+{% endif %}

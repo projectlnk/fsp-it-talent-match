@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
 
 from app.modules.assessments.web import router as assessments_web_router
-from app.modules.auth.dependencies import get_current_user_optional
-from app.modules.auth.models import User
+from app.modules.auth.dependencies import get_current_user_optional, workspace_home
+from app.modules.auth.models import User, UserRole
 from app.modules.auth.web import router as auth_web_router
 from app.modules.candidates.web import router as candidates_web_router
 from app.modules.employers.web import router as employers_web_router
@@ -26,8 +27,11 @@ router.include_router(candidates_offers_web_router)
 
 @router.get("/", include_in_schema=False)
 def index(request: Request, user: User | None = Depends(get_current_user_optional)):
+    if user is not None and workspace_home(user) != "/" and request.query_params.get("public") != "1":
+        return RedirectResponse(workspace_home(user), status_code=303, headers={"Cache-Control": "no-store"})
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"user": user},
+        context={"user": user, "public_page": True},
+        headers={"Cache-Control": "no-store"},
     )

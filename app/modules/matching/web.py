@@ -19,7 +19,8 @@ EMPLOYER_ONLY = require_role(UserRole.EMPLOYER)
 def search(request: Request, user: User = Depends(EMPLOYER_ONLY), session: Session = Depends(get_session)):
     params = request.query_params
     try:
-        filters = CandidateSearchQuery(specialization=params.get('specialization'), grade=params.get('grade'),
+        extras={key:params.get(key) or None for key in ('query','desired_role','experience_min','experience_max','salary_min','salary_max','fsp','test_score_min','activity_min')}
+        filters = CandidateSearchQuery(**extras,specialization=params.get('specialization'), grade=params.get('grade'),
             skills=[s for value in params.getlist('skills') for s in value.split(',')],
             all_skills=params.get('all_skills', False),
             location=params.get('location'), work_format=params.get('work_format') or None,
@@ -54,6 +55,10 @@ def detail(request: Request, candidate_id: int, user: User = Depends(EMPLOYER_ON
         card = service.get_candidate_card(session, profile_id=candidate_id)
     except service.CandidateNotFound as exc:
         raise HTTPException(404, 'Кандидат не найден') from exc
+    from app.modules.career.service import event, employer
+    company=employer(session,user.id)
+    event(session,company.id,f'resume-view:{candidate_id}','resume_view',0,'Просмотр опубликованного профиля; баллы общего рейтинга не начисляются')
+    session.commit()
     response = templates.TemplateResponse(request=request, name='matching/detail.html', context={'user': user, 'card': card})
     response.headers['Cache-Control'] = 'no-store'
     return response

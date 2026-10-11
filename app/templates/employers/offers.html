@@ -1,44 +1,14 @@
 {% extends "base.html" %}
+{% from 'components/employer_tabs.html' import connection_tabs %}
 {% block content %}
-<h1>Мои приглашения</h1>
-
-{% if offers %}
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Кандидат</th>
-        <th>Заголовок</th>
-        <th>Зарплата</th>
-        <th>Статус</th>
-        <th>Отправлено</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for o in offers %}
-        <tr>
-          <td>{{ o.candidate.full_name }}</td>
-          <td>{{ o.title }}</td>
-          <td>
-            {{ o.salary_from }} – {{ o.salary_to }} {{ o.salary_currency }}
-            {% if o.salary_gross %}<span class="muted small">(gross)</span>{% else %}<span class="muted small">(net)</span>{% endif %}
-          </td>
-          <td>
-            {% if o.status == 'sent' %}<span class="badge">отправлено</span>
-            {% elif o.status == 'viewed' %}<span class="badge badge-demo">просмотрено</span>
-            {% elif o.status == 'accepted' %}<span class="badge badge-fsp">принято</span>
-            {% else %}<span class="badge" style="background:#fee2e2;color:#991b1b">отклонено</span>{% endif %}
-          </td>
-          <td>{{ o.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
-          <td><a href="/employer/offers/{{ o.id }}">Открыть</a></td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <div class="alert">
-    Пока нет отправленных приглашений.
-    <a href="/employer/search">Найти кандидатов</a>.
-  </div>
-{% endif %}
+<h1>Связь</h1>{{ connection_tabs(invitations=true) }}
+<h2>Исходящие приглашения</h2>
+{% if request.query_params.get('revoked') %}<p class="notice" role="status">Приглашение отозвано. История сохранена; новые сообщения недоступны до принятия нового приглашения.</p>{% endif %}
+<p class="muted">Приглашение без ответа или с отказом не открывает переписку. Отзыв закрывает отправку сообщений до принятия нового приглашения.</p>
+<div class="stack">
+{% for o in offers %}
+<article class="card"><div class="card-heading"><div><h3><a href="/employer/offers/{{ o.id }}">{{ o.title }}</a></h3><p>{{ o.candidate.full_name }} · {{ o.salary_from }}–{{ o.salary_to }} {{ o.salary_currency }}</p><p class="muted small">Отправлено {{ o.created_at.strftime('%d.%m.%Y %H:%M') }}</p></div><span class="tag">{{ offer_status_labels.get(o.status,o.status) }}</span></div>
+<div class="actions"><a href="/employer/offers/{{ o.id }}">Условия и статус</a>{% with offer=o %}{% include 'components/revoke_invitation.html' %}{% endwith %}</div></article>
+{% else %}<div class="card empty-state"><p>Отправленных приглашений пока нет.</p><a href="/employer/search">Найти кандидатов</a></div>{% endfor %}
+</div>
 {% endblock %}

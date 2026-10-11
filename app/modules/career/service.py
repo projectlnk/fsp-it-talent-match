@@ -2,8 +2,8 @@
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from zoneinfo import ZoneInfo
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, func, case, cast, Float, and_, exists
+from sqlalchemy.orm import selectinload, aliased
 from fastapi import HTTPException
 from app.core.config import get_settings
 from app.modules.auth.models import User, UserRole
@@ -130,9 +130,41 @@ def event(session, company_id, key, kind, points, explanation):
     return True
 
 
+def normalized_activity(total, viewed):
+    if not total:
+        return 0.0
+    if total >= 500:
+        return round(min(100, 100 * viewed / (0.2 * total)), 2)
+    if total >= 100:
+        return float(min(100, viewed))
+    if total >= 40 and viewed >= 40:
+        return round(100 * viewed / total, 2)
+    return float(viewed)
+
+
+def vacancy_metrics(session, oid):
+    total, viewed = session.execute(select(func.count(Application.id),
+        func.count(Application.resume_viewed_at)).where(Application.opportunity_id == oid)).one()
+    return {'total':total, 'viewed':viewed, 'activity':normalized_activity(total, viewed),
+            'viewed_percent':round(100 * viewed / total, 1) if total else 0}
+
+
 def vacancy_activity(session, oid):
-    return session.scalar(select(func.count(Application.id)).where(Application.opportunity_id == oid,
-        Application.status.in_(['accepted', 'rejected']))) or 0
+    return vacancy_metrics(session, oid)['activity']
+
+
+def vacancy_activity_order():
+    # Correlated SQL calculation keeps ordering correct before pagination.
+    total = select(func.count(Application.id)).where(Application.opportunity_id == Opportunity.id).correlate(Opportunity).scalar_subquery()
+    viewed = select(func.count(Application.resume_viewed_at)).where(Application.opportunity_id == Opportunity.id).correlate(Opportunity).scalar_subquery()
+    return case((total == 0, 0.0), (total >= 500, func.least(100.0, 500.0 * viewed / func.nullif(total, 0))),
+        (total >= 100, cast(viewed, Float)), (and_(total >= 40, viewed >= 40), 100.0 * viewed / func.nullif(total, 0)),
+        else_=cast(viewed, Float))
+
+
+def vacancy_hired(session, oid):
+    return bool(session.scalar(select(Meeting.id).where(Meeting.opportunity_id == oid,
+        Meeting.status == 'hired', Meeting.employer_hire_at.is_not(None), Meeting.candidate_hire_at.is_not(None))))
 
 
 def change_opportunity(session, user_id, oid, action):
@@ -148,9 +180,11 @@ def change_opportunity(session, user_id, oid, action):
     elif action in ('extend', 'restore'):
         if row.status == 'deleted':
             fail('Удалённая запись остаётся в архиве')
+        if vacancy_hired(session, row.id):
+            fail('Вакансия успешно закрыта наймом; создайте новую запись для следующего подбора')
         if instant >= utc(row.created_at) + timedelta(days=get_settings().vacancy_edit_days):
             if vacancy_activity(session, row.id) < get_settings().vacancy_activity_threshold:
-                fail('Недостаточно обработанных откликов для продления; порог: ' + str(get_settings().vacancy_activity_threshold))
+                fail('Недостаточная активность вакансии для продления; порог в процентах: ' + str(get_settings().vacancy_activity_threshold))
         row.expires_at = max(instant, utc(row.expires_at)) + timedelta(days=get_settings().vacancy_lifetime_days)
         row.status = 'new' if instant < utc(row.created_at) + timedelta(days=get_settings().vacancy_edit_days) else 'stable'
     else:
@@ -227,8 +261,8 @@ def decide(session, user_id, aid, decision):
             return application
         fail('Решение уже принято')
     application.status, application.decided_at = decision, now(session)
-    # One rewarded decision per company/candidate prevents reposting/farming one candidate.
-    event(session, company.id, f'decision:{application.candidate_id}', 'decision', 2, 'Первое содержательное решение по отклику кандидата')
+    application.resume_viewed_at = application.resume_viewed_at or now(session)
+    event(session, company.id, f'decision:{application.candidate_id}', 'decision', 0, 'Решение по отклику; в общий рейтинг не входит')
     session.flush()
     return application
 
@@ -242,14 +276,47 @@ def contact_allowed(session, candidate_id):
     # Existing accepted offers retain their contract unless the candidate explicitly revokes.
     return current is None or current.accepted
 
+def accepted_pair(session, employer_id, candidate_id):
+    # A withdrawal closes the pair until a new invitation is explicitly accepted.
+    # Pending/rejected offers do not override existing consent.
+    latest = session.scalar(select(Offer.status).where(
+        Offer.employer_profile_id == employer_id, Offer.candidate_profile_id == candidate_id,
+        Offer.status.in_([OfferStatus.ACCEPTED, OfferStatus.REVOKED])).order_by(
+        func.coalesce(Offer.revoked_at, Offer.responded_at, Offer.created_at).desc(), Offer.id.desc()).limit(1))
+    return bool(contact_allowed(session, candidate_id) and latest == OfferStatus.ACCEPTED)
+
+
 def permitted_pair(session, employer_id, candidate_id):
-    if not contact_allowed(session,candidate_id):
+    if accepted_pair(session, employer_id, candidate_id):
+        return True
+    # Preserve access to history created under the old application-based rule.
+    if not contact_allowed(session, candidate_id):
         return False
-    accepted_offer = session.scalar(select(Offer.id).where(Offer.employer_profile_id == employer_id,
-        Offer.candidate_profile_id == candidate_id, Offer.status == OfferStatus.ACCEPTED))
-    application = session.scalar(select(Application.id).join(Opportunity).where(Opportunity.employer_id == employer_id,
-        Application.candidate_id == candidate_id))
-    return bool(accepted_offer or application)
+    return bool(session.scalar(select(ThreadMessage.id).where(ThreadMessage.employer_id == employer_id,
+        ThreadMessage.candidate_id == candidate_id)) or session.scalar(select(Meeting.id).where(
+        Meeting.employer_id == employer_id, Meeting.candidate_id == candidate_id)))
+
+
+def can_view_candidate(session, employer_id, candidate_id):
+    return bool(contact_allowed(session, candidate_id) and (accepted_pair(session, employer_id, candidate_id)
+        or session.scalar(select(Application.id).join(Opportunity).where(
+            Opportunity.employer_id == employer_id, Application.candidate_id == candidate_id))))
+
+
+def invitation_messages(session, offer):
+    company = session.get(EmployerProfile, offer.employer_profile_id)
+    profile = session.get(CandidateProfile, offer.candidate_profile_id)
+    instant = offer.responded_at or offer.created_at
+    body = (f"{offer.title}\n{offer.description or ''}\n"
+        f"Зарплата: {offer.salary_from}–{offer.salary_to} ₽ "
+        f"({'до' if offer.salary_gross else 'после'} вычета НДФЛ).\n"
+        f"Способ связи: {offer.contact_method or 'Не указан'}")
+    for author, kind, text in [(company.user_id, 'invitation', body),
+            (profile.user_id, 'acceptance', 'Приглашение принято. Готов обсудить предложенные условия')]:
+        if not session.scalar(select(ThreadMessage.id).where(ThreadMessage.offer_id == offer.id, ThreadMessage.kind == kind)):
+            session.add(ThreadMessage(employer_id=company.id, candidate_id=profile.id, author_id=author,
+                body=text, kind=kind, offer_id=offer.id, created_at=instant))
+    session.flush()
 
 
 def pair_access(session, user, employer_id, candidate_id):
@@ -272,8 +339,8 @@ def meetings_for(session, user):
 def schedule(session, user_id, cid, data: MeetingInput):
     company = employer(session, user_id)
     session.scalar(select(EmployerProfile).where(EmployerProfile.id == company.id).with_for_update())
-    if not permitted_pair(session, company.id, cid):
-        fail('Сначала требуется принятое приглашение или самостоятельный отклик', 403)
+    if not accepted_pair(session, company.id, cid):
+        fail('Сначала требуется принятое приглашение с условиями', 403)
     scheduled = data.scheduled_at
     if scheduled.tzinfo is None:
         scheduled = scheduled.replace(tzinfo=ZoneInfo(data.timezone))
@@ -284,10 +351,24 @@ def schedule(session, user_id, cid, data: MeetingInput):
         Meeting.candidate_id == cid, Meeting.status == 'scheduled'))
     if existing:
         fail('Уже есть назначенная встреча с этим кандидатом')
-    row = Meeting(employer_id=company.id, candidate_id=cid, scheduled_at=scheduled, timezone=data.timezone,
+    accepted = session.scalars(select(Offer).where(Offer.employer_profile_id == company.id,
+        Offer.candidate_profile_id == cid, Offer.status == OfferStatus.ACCEPTED).order_by(Offer.responded_at.desc(), Offer.id.desc())).first()
+    opportunity_id = getattr(data, 'opportunity_id', None)
+    if opportunity_id is not None:
+        if not session.scalar(select(Offer.id).where(Offer.employer_profile_id == company.id, Offer.candidate_profile_id == cid,
+                Offer.status == OfferStatus.ACCEPTED, Offer.opportunity_id == opportunity_id)):
+            fail('Нет принятого приглашения по выбранной вакансии', 403)
+        if vacancy_hired(session, opportunity_id):
+            fail('Вакансия уже закрыта наймом')
+    elif accepted:
+        opportunity_id = accepted.opportunity_id
+    if opportunity_id and vacancy_hired(session, opportunity_id):
+        fail('Вакансия уже закрыта наймом')
+    row = Meeting(employer_id=company.id, candidate_id=cid, opportunity_id=opportunity_id, scheduled_at=scheduled, timezone=data.timezone,
                   channel=data.channel, status='scheduled')
     session.add(row)
     session.flush()
+    event(session, company.id, f'meeting-scheduled:{row.id}', 'meeting_scheduled', 2, 'Назначена встреча')
     return row
 
 
@@ -302,6 +383,8 @@ def meeting_action(session, user, mid, action):
         fail('Встреча не найдена', 404)
     company, profile = pair_access(session, user, row.employer_id, row.candidate_id)
     instant = now(session)
+    if row.status == 'cancelled':
+        fail('Встреча отменена')
     if instant < utc(row.scheduled_at):
         fail('Встреча ещё не состоялась')
     is_candidate = user.id == profile.user_id
@@ -310,16 +393,20 @@ def meeting_action(session, user, mid, action):
             fail('Срок возражения завершён')
         row.candidate_objection_at = instant
         row.status = 'disputed'
+        event(session, company.id, f'meeting-disputed:{row.id}', 'meeting_disputed', -2, 'Кандидат оспорил проведение встречи')
     elif action == 'interview':
         if row.candidate_objection_at:
             fail('Кандидат оспорил встречу')
         if row.interview_confirmed_at:
             return row
         if is_candidate:
-            row.interview_confirmed_at, row.status = row.interview_confirmed_at or instant, 'confirmed'
-            event(session, company.id, f'interview:{profile.id}', 'interview', 10, 'Собеседование подтверждено кандидатом')
+            row.candidate_confirmed_at = row.candidate_confirmed_at or instant
         else:
             row.employer_confirmed_at = row.employer_confirmed_at or instant
+        if row.candidate_confirmed_at and row.employer_confirmed_at:
+            row.interview_confirmed_at, row.status = instant, 'confirmed'
+            event(session, company.id, f'meeting-conducted:{row.id}', 'meeting_conducted', 8,
+                'Проведение встречи подтверждено обеими сторонами; стоимость встречи стала 10 баллов')
     elif action == 'hire':
         if not row.interview_confirmed_at or row.candidate_objection_at:
             fail('Сначала подтвердите собеседование')
@@ -329,7 +416,11 @@ def meeting_action(session, user, mid, action):
             row.employer_hire_at = row.employer_hire_at or instant
         if row.candidate_hire_at and row.employer_hire_at:
             row.status = 'hired'
-            event(session, company.id, f'hire:{profile.id}', 'hire', 30, 'Обе стороны подтвердили найм')
+            event(session, company.id, f'hire:{profile.id}', 'hire', 0, 'Обе стороны явно подтвердили найм; отдельного бонуса нет')
+            if row.opportunity_id:
+                job = session.get(Opportunity, row.opportunity_id)
+                if job and job.employer_id == company.id:
+                    job.status = 'inactive'
     else:
         fail('Действие недоступно', 403)
     session.flush()
@@ -338,16 +429,37 @@ def meeting_action(session, user, mid, action):
 
 def send_message(session, user, eid, cid, body):
     pair_access(session, user, eid, cid)
+    session.scalar(select(EmployerProfile).where(EmployerProfile.id == eid).with_for_update())
+    if not accepted_pair(session, eid, cid):
+        fail('Для новых сообщений требуется принятое приглашение', 403)
     text = body.strip()
     if not text or len(text) > 2000:
         fail('Сообщение должно содержать от 1 до 2000 символов', 422)
-    row = ThreadMessage(employer_id=eid, candidate_id=cid, author_id=user.id, body=text, created_at=now(session))
+    row = ThreadMessage(employer_id=eid, candidate_id=cid, author_id=user.id, body=text, kind='message', created_at=now(session))
     session.add(row)
     session.flush()
-    authors = set(session.scalars(select(ThreadMessage.author_id).where(ThreadMessage.employer_id == eid, ThreadMessage.candidate_id == cid)))
-    if len(authors) == 2:
-        event(session, eid, f'interaction:{cid}', 'interaction', 3, 'Обе стороны начали согласованное общение')
+    if cid in rewarded_conversations(session, eid):
+        event(session, eid, f'interaction-v2:{cid}', 'interaction_v2', 1,
+            'Обе стороны отправили обычное сообщение после принятого приглашения')
     return row
+
+
+def rewarded_conversations(session, eid):
+    technical = aliased(ThreadMessage)
+    invitation = aliased(ThreadMessage)
+    accepted = exists(select(Offer.id).where(Offer.employer_profile_id == ThreadMessage.employer_id,
+        Offer.candidate_profile_id == ThreadMessage.candidate_id,
+        Offer.status.in_([OfferStatus.ACCEPTED, OfferStatus.REVOKED]),
+        (Offer.revoked_at.is_(None) | (ThreadMessage.created_at <= Offer.revoked_at)),
+        func.coalesce(Offer.responded_at, Offer.created_at) <= ThreadMessage.created_at,
+        exists(select(technical.id).where(technical.offer_id == Offer.id, technical.kind == 'acceptance').correlate(Offer)),
+        exists(select(invitation.id).where(invitation.offer_id == Offer.id, invitation.kind == 'invitation').correlate(Offer))))
+    rows = session.execute(select(ThreadMessage.candidate_id, ThreadMessage.author_id).where(
+        ThreadMessage.employer_id == eid, ThreadMessage.kind == 'message', accepted).distinct()).all()
+    authors = {}
+    for cid, uid in rows:
+        authors.setdefault(cid, set()).add(uid)
+    return {cid for cid, people in authors.items() if len(people) == 2}
 
 
 def process_due(session):
@@ -367,7 +479,7 @@ def process_due(session):
         if (meeting.employer_confirmed_at and not meeting.candidate_objection_at and
                 max(utc(meeting.scheduled_at), utc(meeting.employer_confirmed_at)) + timedelta(days=settings.interview_auto_days) <= instant):
             meeting.status, meeting.interview_confirmed_at = 'confirmed', instant
-            event(session, meeting.employer_id, f'interview:{meeting.candidate_id}', 'interview', 10,
+            event(session, meeting.employer_id, f'meeting-conducted:{meeting.id}', 'meeting_conducted', 8,
                   'Работодатель подтвердил встречу; два дня без возражения кандидата')
             changes.append({'url':'/career/meetings', 'id':meeting.id, 'old':'scheduled', 'new':'confirmed', 'reason':'Два дня после встречи и заявления работодателя без возражения'})
     session.flush()
@@ -377,19 +489,104 @@ def process_due(session):
 def leaderboard(session):
     results = []
     for company in session.scalars(select(EmployerProfile).join(User).where(User.is_active.is_(True), User.role == UserRole.EMPLOYER)):
-        complete = all((company.company_name, company.description, company.industry, company.contact_email or company.contact_phone))
-        if complete:
-            event(session, company.id, 'profile', 'profile', 5, 'Компания заполнила название, описание, отрасль и контакт')
-        total = session.scalar(select(func.count(Application.id)).join(Opportunity).where(Opportunity.employer_id == company.id)) or 0
-        handled = session.scalar(select(func.count(Application.id)).join(Opportunity).where(Opportunity.employer_id == company.id, Application.status != 'submitted')) or 0
-        events = list(session.scalars(select(ActivityEvent).where(ActivityEvent.employer_id == company.id).order_by(ActivityEvent.id)))
-        # Volume rewards capped; ratio counts only for three distinct candidate applications.
-        unique_candidates = session.scalar(select(func.count(func.distinct(Application.candidate_id))).join(Opportunity).where(Opportunity.employer_id == company.id)) or 0
-        ratio = round(10 * handled / total, 2) if unique_candidates >= 3 else 0
-        event_points = sum(e.points for e in events if e.kind != 'decision') + min(20, sum(e.points for e in events if e.kind == 'decision'))
-        results.append({'company':company, 'events':events, 'handled':handled, 'total':total,
-                        'ratio_points':ratio, 'score':event_points + ratio})
+        meetings = list(session.scalars(select(Meeting).where(Meeting.employer_id == company.id)))
+        conducted = sum(m.interview_confirmed_at is not None and not m.candidate_objection_at and m.status != 'cancelled' for m in meetings)
+        scheduled = sum(m.interview_confirmed_at is None and m.status == 'scheduled' and not m.candidate_objection_at for m in meetings)
+        closed = {m.opportunity_id for m in meetings if m.opportunity_id is not None and m.status == 'hired'
+                  and m.employer_hire_at is not None and m.candidate_hire_at is not None}
+        chats = len(rewarded_conversations(session, company.id))
+        chat_limit = 10 + 5 * conducted
+        chat_points = min(chats, chat_limit)
+        raw_score = chat_points + 2 * scheduled + 10 * conducted
+        score_limit = 200 + 100 * len(closed)
+        vacancies = session.scalar(select(func.count(Opportunity.id)).where(Opportunity.employer_id == company.id,
+            Opportunity.kind == 'vacancy', Opportunity.status.in_(['new','stable']), Opportunity.expires_at > now(session))) or 0
+        total, viewed = session.execute(select(func.count(Application.id),func.count(Application.resume_viewed_at))
+            .join(Opportunity).where(Opportunity.employer_id == company.id)).one()
+        selected_ids = set(session.scalars(select(Application.candidate_id).join(Opportunity).where(Opportunity.employer_id == company.id, Application.status == 'accepted')))
+        selected_ids.update(session.scalars(select(Offer.candidate_profile_id).where(Offer.employer_profile_id == company.id, Offer.status == OfferStatus.ACCEPTED)))
+        results.append({'company':company, 'score':min(raw_score, score_limit), 'raw_score':raw_score,
+            'chat_points':chat_points, 'chat_limit':chat_limit, 'chats':chats, 'score_limit':score_limit,
+            'closed_vacancies':len(closed), 'vacancies':vacancies, 'meetings':scheduled,
+            'interviews':conducted, 'hires':len(closed), 'total':total, 'viewed':viewed,
+            'viewed_percent':round(100 * viewed / total, 1) if total else 0,
+            'events':list(session.scalars(select(ActivityEvent).where(ActivityEvent.employer_id == company.id))),
+            'handled':viewed, 'ratio_points':0, 'profile_points':0, 'selected':len(selected_ids)})
     results.sort(key=lambda r:(-r['score'], r['company'].id))
     for position, row in enumerate(results, 1):
         row['position'] = position
     return results
+
+
+def opportunity_state(session, row):
+    """Presentation of the existing lifecycle; does not change its transitions."""
+    early = now(session) < utc(row.created_at) + timedelta(days=get_settings().vacancy_edit_days)
+    enough = vacancy_activity(session, row.id) >= get_settings().vacancy_activity_threshold
+    actions, reason = [], ''
+    if vacancy_hired(session, row.id):
+        reason = 'Успешно закрыта: найм явно подтверждён кандидатом и работодателем.'
+    elif row.status == 'deleted':
+        reason = 'Логически удалена. Данные и отклики сохранены; восстановление не разрешено действующими правилами.'
+    else:
+        if row.status in ('new', 'stable'):
+            actions.append(('close', 'В архив'))
+        if early or enough:
+            actions.append(('restore', 'Восстановить') if row.status == 'inactive' else ('extend', 'Продлить'))
+        else:
+            reason = f'Для восстановления или продления достигните {get_settings().vacancy_activity_threshold}% активности этой записи.'
+        actions.append(('delete', 'Удалить в архив'))
+    return {'actions':actions, 'reason':reason, 'requirements_editable':early,
+            'metrics':vacancy_metrics(session, row.id), 'hired':vacancy_hired(session, row.id),
+            'edit_until':utc(row.created_at) + timedelta(days=get_settings().vacancy_edit_days)}
+
+
+def connections_for(session, user):
+    """Only pairs allowed by the original consent and participant policy."""
+    if user.role == UserRole.EMPLOYER:
+        eid = employer(session, user.id).id
+        ids = set(session.scalars(select(Offer.candidate_profile_id).where(Offer.employer_profile_id == eid, Offer.status == OfferStatus.ACCEPTED)))
+        ids.update(session.scalars(select(ThreadMessage.candidate_id).where(ThreadMessage.employer_id == eid)))
+        ids.update(session.scalars(select(Meeting.candidate_id).where(Meeting.employer_id == eid)))
+        return [(eid,c.id,c.full_name) for c in session.scalars(select(CandidateProfile).where(CandidateProfile.id.in_(ids)).order_by(CandidateProfile.full_name)) if permitted_pair(session,eid,c.id)]
+    cid = candidate(session,user.id).id
+    ids = set(session.scalars(select(Offer.employer_profile_id).where(Offer.candidate_profile_id == cid, Offer.status == OfferStatus.ACCEPTED)))
+    ids.update(session.scalars(select(ThreadMessage.employer_id).where(ThreadMessage.candidate_id == cid)))
+    ids.update(session.scalars(select(Meeting.employer_id).where(Meeting.candidate_id == cid)))
+    return [(e.id,cid,e.company_name) for e in session.scalars(select(EmployerProfile).where(EmployerProfile.id.in_(ids))) if permitted_pair(session,e.id,cid)]
+
+
+def record_resume_view(session, user, cid):
+    if user.role != UserRole.EMPLOYER:
+        fail('Недостаточно прав',403)
+    company = employer(session,user.id)
+    if not can_view_candidate(session, company.id, cid):
+        fail('Данные кандидата недоступны', 404)
+    # Zero points: unique viewed resumes are a metric, not a new reward.
+    event(session,company.id,f'resume-view:{cid}','resume_view',0,'Просмотр резюме разрешённого кандидата; баллы не начисляются')
+    return company.id
+
+
+def update_meeting(session, user, mid, data=None, cancel=False):
+    if user.role != UserRole.EMPLOYER:
+        fail('Только работодатель может изменить или отменить встречу',403)
+    existing = session.get(Meeting,mid)
+    if not existing:
+        fail('Встреча не найдена',404)
+    pair_access(session,user,existing.employer_id,existing.candidate_id)
+    session.scalar(select(EmployerProfile).where(EmployerProfile.id == existing.employer_id).with_for_update())
+    row = session.scalar(select(Meeting).where(Meeting.id == mid).with_for_update().execution_options(populate_existing=True))
+    if row.status != 'scheduled' or utc(row.scheduled_at) <= now(session) or row.employer_confirmed_at or row.candidate_objection_at:
+        fail('Можно изменить или отменить только предстоящую неподтверждённую встречу')
+    if cancel:
+        row.status = 'cancelled'
+        event(session, row.employer_id, f'meeting-cancelled:{row.id}', 'meeting_cancelled', -2, 'Назначенная встреча отменена')
+    else:
+        instant = data.scheduled_at
+        if instant.tzinfo is None:
+            instant = instant.replace(tzinfo=ZoneInfo(data.timezone))
+        instant = utc(instant)
+        if instant <= now(session):
+            fail('Встреча должна быть в будущем',422)
+        row.scheduled_at, row.timezone, row.channel = instant, data.timezone, data.channel
+    session.flush()
+    return row

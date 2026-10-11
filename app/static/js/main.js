@@ -1,4 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('[data-loading-form]').forEach(form => form.addEventListener('submit', () => {
+    form.setAttribute('aria-busy', 'true');
+    const loadingStatus=form.querySelector('[data-submit-status], [data-loading-status]');
+    if(loadingStatus) loadingStatus.hidden = false;
+    form.querySelector('button[type="submit"]').disabled = true;
+  }));
   const status = document.getElementById("js-status");
   if (status) status.textContent = "JavaScript работает";
   const visibilityForm = document.querySelector('#visibility .visibility-form');
@@ -109,4 +115,78 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector("[data-fsp-import]").addEventListener("click", () => { document.getElementById("fsp-achievements").hidden = false; document.getElementById("fsp-state").textContent = "Показано одно синтетическое достижение. Повторное действие не добавляет дубли."; notify("Демо-импорт. Запрос к реестру не выполнялся."); });
   }
   document.querySelector("[data-print-resume]")?.addEventListener("click", () => window.print());
+});
+
+// Live communication remains on the existing authenticated HTTP stack.
+document.addEventListener('DOMContentLoaded', () => {
+  const poll = (task, interval) => {
+    const tick = async () => {
+      if (!document.hidden) await task();
+      window.setTimeout(tick, interval);
+    };
+    window.setTimeout(tick, interval);
+  };
+  const history=document.querySelector('[data-chat-feed]');
+  if(history){
+    const status=document.querySelector('[data-chat-status]');
+    let denied=false;
+    history.scrollTop=history.scrollHeight;
+    poll(async()=>{
+      if(denied) return;
+      try{
+        const response=await fetch(history.dataset.chatFeed+'?after='+history.dataset.lastMessage,{cache:'no-store'});
+        if([401,403,404].includes(response.status)){denied=true;status.textContent='Доступ к переписке закрыт. Обновите состояние входа или согласия.';return;}
+        if(!response.ok) throw new Error('feed');
+        const data=await response.json();
+        const compose=document.querySelector('[data-chat-compose]');
+        if(compose){
+          compose.hidden=!data.can_send;
+          if(!data.can_send) compose.querySelectorAll('textarea,button').forEach(field=>{field.disabled=true;field.dataset.revokedDisabled='';});
+          else compose.querySelectorAll('[data-revoked-disabled]').forEach(field=>{field.disabled=false;delete field.dataset.revokedDisabled;});
+        }
+        const closed=document.querySelector('[data-chat-closed]');if(closed) closed.hidden=Boolean(data.can_send);
+        const meeting=document.querySelector('[data-chat-meeting]');if(meeting) meeting.hidden=!data.can_send;
+        if(!data.can_view) document.querySelector('[data-chat-context]')?.remove();
+        const atBottom=history.scrollHeight-history.scrollTop-history.clientHeight<60;
+        for(const message of data.messages){
+          history.querySelector('[data-chat-empty]')?.remove();
+          const article=document.createElement('article');article.className='message-bubble'+(message.own?' message-own':'');
+          const label=document.createElement('p');label.className='small muted';label.textContent=(message.own?'вы':history.dataset.peer)+' · '+new Date(message.created_at).toLocaleString('ru-RU');
+          const body=document.createElement('p');body.className='matching-text';body.textContent=message.body;
+          article.append(label);if(message.technical){const mark=document.createElement('p');mark.className='muted small';mark.dataset.technicalMessage='';mark.textContent='Автоматическое сообщение';article.append(mark);}article.append(body);history.append(article);history.dataset.lastMessage=String(message.id);
+        }
+        if(atBottom) history.scrollTop=history.scrollHeight;
+        status.textContent='Сообщения обновляются автоматически.';
+      }catch{status.textContent='Не удалось обновить сообщения. Повторное подключение выполняется автоматически.';}
+    },2000);
+  }
+  const inbox=document.querySelector('[data-inbox-feed]');
+  if(inbox){
+    const status=document.querySelector('[data-inbox-status]');
+    let denied=false;
+    poll(async()=>{
+      if(denied) return;
+      try{
+        const response=await fetch(inbox.dataset.inboxFeed,{cache:'no-store'});
+        if([401,403,404].includes(response.status)){denied=true;status.textContent='Доступ закрыт. Проверьте состояние входа.';return;}
+        if(!response.ok) throw new Error('inbox');
+        const doc=new DOMParser().parseFromString(await response.text(),'text/html');
+        const incoming=doc.querySelector('[data-inbox-feed]');
+        if(!incoming) throw new Error('inbox');
+        if(incoming.innerHTML!==inbox.innerHTML && !inbox.contains(document.activeElement)) inbox.replaceChildren(...incoming.childNodes);
+        status.textContent='Диалоги обновляются автоматически.';
+      }catch{status.textContent='Не удалось обновить диалоги. Подключение повторится автоматически.';}
+    },5000);
+  }
+  const form=document.querySelector('[data-calendar-form]');
+  if(form){
+    document.querySelectorAll('[data-meeting-date]').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('[data-meeting-date]').forEach(day=>day.setAttribute('aria-pressed',String(day===button)));
+      const input=form.elements.scheduled_at;
+      const time=input.value.split('T')[1]||'09:00';
+      input.value=button.dataset.meetingDate+'T'+time;
+      document.querySelector('[data-calendar-selection]').textContent='Выбрана дата '+button.dataset.meetingDate+'. Укажите время в часовом поясе встречи.';
+      form.scrollIntoView({block:'nearest'});input.focus({preventScroll:true});
+    }));
+  }
 });

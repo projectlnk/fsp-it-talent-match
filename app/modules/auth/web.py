@@ -4,14 +4,14 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, Form, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 from app.modules.auth.schemas import UserRegister
 
 from app.db.session import get_session
 from app.modules.auth import service
-from app.modules.auth.dependencies import COOKIE_NAME, get_current_user, get_current_user_optional
+from app.modules.auth.dependencies import COOKIE_NAME, get_current_user, get_current_user_optional, workspace_home
 from app.modules.auth.models import User, UserRole
 from app.web.templates import templates
 
@@ -117,7 +117,10 @@ def login_submit(
         )
 
     token, expires_in = service.issue_access_token(user)
-    response = RedirectResponse(_safe_next(next), status_code=status.HTTP_303_SEE_OTHER)
+    destination = _safe_next(next)
+    if destination == "/":
+        destination = workspace_home(user)
+    response = RedirectResponse(destination, status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
@@ -182,3 +185,16 @@ def resend_verification_page(request: Request, user: User = Depends(get_current_
         error = "Письмо не отправлено. Попробуйте повторить позже."
     return templates.TemplateResponse(request=request, name="auth/check_email.html",
         context={"user": user, "error": error}, status_code=503 if error else 200)
+
+
+@router.get('/session-state', include_in_schema=False)
+def session_state(user: User | None = Depends(get_current_user_optional)):
+    return JSONResponse({'user_id':user.id if user else None}, headers={'Cache-Control':'no-store'})
+
+
+@router.get('/session-refresh', include_in_schema=False)
+def session_refresh(user: User | None = Depends(get_current_user_optional)):
+    response = RedirectResponse(workspace_home(user), status_code=303, headers={'Cache-Control':'no-store'})
+    if user is None:
+        response.delete_cookie(COOKIE_NAME)
+    return response

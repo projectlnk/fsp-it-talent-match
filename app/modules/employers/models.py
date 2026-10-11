@@ -24,6 +24,7 @@ class OfferStatus(str, enum.Enum):
     VIEWED = "viewed"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
+    REVOKED = "revoked"
 
 
 class SalaryCurrency(str, enum.Enum):
@@ -61,6 +62,7 @@ class Offer(Base):
     candidate_profile_id: Mapped[int] = mapped_column(
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"), index=True
     )
+    opportunity_id: Mapped[int | None] = mapped_column(ForeignKey("career_opportunities.id"), index=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     salary_from: Mapped[int] = mapped_column(Integer)
@@ -79,5 +81,7 @@ class Offer(Base):
     )
     viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     employer: Mapped[EmployerProfile] = relationship(back_populates="offers")

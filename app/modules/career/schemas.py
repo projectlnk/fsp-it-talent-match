@@ -29,6 +29,7 @@ class OpportunityInput(BaseModel):
 
 
 class MeetingInput(BaseModel):
+    opportunity_id: int | None = Field(default=None, gt=0)
     model_config = ConfigDict(str_strip_whitespace=True)
     scheduled_at: datetime
     timezone: str = 'Europe/Moscow'

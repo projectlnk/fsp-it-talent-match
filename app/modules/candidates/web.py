@@ -7,7 +7,7 @@ import httpx
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.modules.assessments.models import Grade, Specialization, Category
 from app.modules.assessments import service as assessment_service
 from app.modules.assessments.grades import GRADE_LABELS
@@ -57,6 +57,10 @@ def _render_profile(
     category = session.get(Category, current.category_id) if current else None
     current_grade = session.get(Grade, category.grade_id) if category else None
     from app.modules.career.models import PrivacyConsent
+    from app.modules.employers.models import Offer, OfferStatus
+    pending = session.scalar(select(func.count(Offer.id)).where(Offer.candidate_profile_id == profile.id, Offer.status.in_([OfferStatus.SENT, OfferStatus.VIEWED])))
+    tab = "fsp" if fsp_error else request.query_params.get("tab", "profile")
+    if tab not in ("profile", "fsp", "settings"): tab = "profile"
     processing_consent = session.scalar(select(PrivacyConsent).where(PrivacyConsent.user_id == user.id, PrivacyConsent.kind == 'processing'))
     return templates.TemplateResponse(
         request=request,
@@ -68,6 +72,10 @@ def _render_profile(
             "grades": list(session.scalars(select(Grade).where(Grade.code.in_(GRADE_LABELS)).order_by(Grade.order))),
             "grade_labels": GRADE_LABELS,
             "current_grade": current_grade,
+            "current_category": current,
+            "current_specialization": session.get(Specialization, category.specialization_id) if category else None,
+            "pending_offers": pending,
+            "tab": tab,
             "processing_consent": bool(processing_consent and processing_consent.accepted),
             "specializations": list(session.scalars(select(Specialization).order_by(Specialization.id))),
             "csrf_token": csrf_token(user.id),
@@ -121,7 +129,7 @@ def profile_update(
         profile = service.get_profile_by_user_id(session, user.id)
         return _render_profile(request, user, profile, session, error=str(exc), status_code=400)
 
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 # --- Навыки --------------------------------------------------------------
@@ -140,7 +148,7 @@ def skill_add(
     except service.CandidateError as exc:
         profile = service.get_profile_by_user_id(session, user.id)
         return _render_profile(request, user, profile, session, error=str(exc) or "Навык уже добавлен", status_code=400)
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/profile/skills/{skill_id}/delete")
@@ -153,7 +161,7 @@ def skill_delete(
         service.delete_skill(session, user_id=user.id, skill_id=skill_id)
     except service.SkillNotFound:
         pass
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 # --- Опыт ----------------------------------------------------------------
@@ -180,7 +188,7 @@ def experience_add(
     except service.CandidateError as exc:
         profile = service.get_profile_by_user_id(session, user.id)
         return _render_profile(request, user, profile, session, error=str(exc), status_code=400)
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/profile/experiences/{experience_id}/delete")
@@ -193,7 +201,7 @@ def experience_delete(
         service.delete_experience(session, user_id=user.id, experience_id=experience_id)
     except service.ExperienceNotFound:
         pass
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 # --- ФСП ID ---------------------------------------------------------------
@@ -280,7 +288,7 @@ async def fsp_link(
             status_code=502 if isinstance(exc, service.FspRegistryInvalid) else 400,
         )
 
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?tab=fsp&saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/profile/fsp/unlink")
@@ -292,7 +300,7 @@ def fsp_unlink(
         service.unlink_fsp(session, user.id)
     except service.CandidateError:
         pass
-    return RedirectResponse("/candidate/profile", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/candidate/profile?tab=fsp&saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
 # --- PDF-резюме -----------------------------------------------------------
 
@@ -300,6 +308,7 @@ def fsp_unlink(
 @router.get("/profile/resume.pdf", response_class=Response)
 def download_resume(
     request: Request,
+    preview: bool = False,
     user: User = Depends(_CANDIDATE_ONLY),
     session: Session = Depends(get_session),
 ):
@@ -319,6 +328,7 @@ def download_resume(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": 'attachment; filename="resume.pdf"',
+            "Cache-Control": "no-store",
+            "Content-Disposition": ('inline' if preview else 'attachment') + '; filename="resume.pdf"',
         },
     )

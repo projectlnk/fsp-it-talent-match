@@ -1,0 +1,21 @@
+{% macro vacancy_tabs(archive=false) %}
+<nav class="section-tabs" aria-label="Мои вакансии">
+<a href="/career/opportunities" {% if not archive %}class="active" aria-current="page"{% endif %}>Активные</a>
+<a href="/career/opportunities?archive=true" {% if archive %}class="active" aria-current="page"{% endif %}>Архив</a>
+</nav>
+{% endmacro %}
+{% macro connection_tabs(calendar=false, invitations=false) %}
+<nav class="section-tabs" aria-label="Связь">
+<a href="/career/connections" {% if not calendar and not invitations %}class="active" aria-current="page"{% endif %}>Чаты</a>
+<a href="/career/meetings" {% if calendar %}class="active" aria-current="page"{% endif %}>Календарь</a>
+<a href="/employer/offers" {% if invitations %}class="active" aria-current="page"{% endif %}>Исходящие приглашения</a>
+</nav>
+{% endmacro %}
+{% macro opportunity_actions(item, state, token) %}
+<div class="actions vacancy-actions">
+<a class="button button-outline button-small" href="/career/opportunities/{{ item.id }}">Открыть</a>
+{% if item.status != 'deleted' %}<a class="text-link" href="/career/opportunities/{{ item.id }}/edit">Редактировать</a>{% endif %}
+{% for action,label in state.actions %}<form method="post" action="/career/opportunities/{{ item.id }}/action"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="action" value="{{ action }}"><button type="submit" class="button button-quiet button-small">{{ label }}</button></form>{% endfor %}
+</div>
+{% if state.reason %}<p class="muted small">{{ state.reason }}</p>{% endif %}
+{% endmacro %}

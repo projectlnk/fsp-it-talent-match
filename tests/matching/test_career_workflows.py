@@ -31,6 +31,14 @@ def payload(**values):
 
 def job(db,e):return s.save_opportunity(db,e.id,'vacancy',payload())
 
+def accept_invitation(db,e,c,company):
+    from app.modules.employers import service as offers
+    from app.modules.employers.schemas import OfferCreate
+    created=offers.create_offer(db,employer_user_id=e.id,payload=OfferCreate(candidate_profile_id=s.candidate(db,c.id).id,
+        title='Обсудить условия',salary_from=100000,salary_to=200000,contact_method='Чат'))
+    offers.respond_to_offer(db,offer_id=created.id,candidate_user_id=c.id,decision='accepted')
+
+
 def test_owner_application_and_contact_scope(career):
     db,e,c,company=career;row=job(db,e)
     assert not s.permitted_pair(db,company.id,s.candidate(db,c.id).id)
@@ -92,6 +100,7 @@ def test_schedule_timezone_future_duplicate_and_participant_access(career):
     payload=MeetingInput(scheduled_at=future,timezone='Europe/Moscow',channel='Видеовстреча')
     with pytest.raises(HTTPException):s.schedule(db,e.id,cid,payload)
     s.apply(db,c.id,row.id,'Отклик')
+    accept_invitation(db,e,c,company)
     with pytest.raises(HTTPException):s.schedule(db,e.id,cid,payload.model_copy(update={'scheduled_at':s.now(db)-timedelta(days=1)}))
     meeting=s.schedule(db,e.id,cid,payload)
     assert s.utc(meeting.scheduled_at)==future
@@ -143,11 +152,12 @@ def test_failed_verification_preserves_current(career):
 
 def test_leaderboard_no_repeat_profile_or_interaction(career):
     db,e,c,company=career;row=job(db,e);s.apply(db,c.id,row.id,'Отклик');cid=s.candidate(db,c.id).id
+    accept_invitation(db,e,c,company)
     s.send_message(db,e,company.id,cid,'Здравствуйте');s.send_message(db,c,company.id,cid,'Добрый день')
     s.send_message(db,c,company.id,cid,'Уточнение')
     first=s.leaderboard(db);second=s.leaderboard(db)
-    assert first[0]['score']==second[0]['score']==8
-    assert db.scalar(select(func.count(ActivityEvent.id)))==2
+    assert first[0]['score']==second[0]['score']==1
+    assert db.scalar(select(func.count(ActivityEvent.id)))==1
 
 def test_career_pages_and_forbidden_company(career,client):
     db,e,c,company=career;row=job(db,e);s.apply(db,c.id,row.id,'Отклик');db.commit()

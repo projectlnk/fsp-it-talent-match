@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block content %}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
+{% from 'components/candidate_tabs.html' import test_tabs %}{% block content %}{{ test_tabs('progress') }}<p class="eyebrow">Кабинет кандидата / Тестирование</p>
 <h1>Завершить тест</h1>
 <p>вы ответили на все вопросы. Нажмите кнопку, чтобы получить результат.</p>
 
